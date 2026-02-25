@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .premium-card { border-radius: 12px; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s; }
+    .premium-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .progress-thin { height: 8px; border-radius: 5px; }
+    .table-hover tbody tr:hover { background-color: #f8f9fc; }
+    .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold text-dark" style="font-family: 'Segoe UI', Tahoma, sans-serif;">
+        Interactive Student Performance 🎓
+    </h2>
+    <div class="user-profile d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm">
+        <span class="me-3 fw-bold text-secondary">Principal Carter</span>
+        <img src="https://ui-avatars.com/api/?name=Principal+Carter&background=6f42c1&color=fff&rounded=true" width="40">
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card premium-card bg-white p-3">
+            <h6 class="text-muted fw-bold">Total Students</h6>
+            <h2 class="fw-bold" style="color: #6f42c1;">3,457</h2>
+            <small class="text-success"><i class="fas fa-arrow-up"></i> 4.5% from last year</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card premium-card bg-white p-3">
+            <h6 class="text-muted fw-bold">Average Attendance</h6>
+            <h2 class="fw-bold text-info">83.7%</h2>
+            <div class="progress progress-thin mt-2">
+                <div class="progress-bar bg-info" style="width: 83.7%;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card premium-card bg-white p-3">
+            <h6 class="text-muted fw-bold">Average GPA</h6>
+            <h2 class="fw-bold text-primary">3.42</h2>
+            <div class="progress progress-thin mt-2">
+                <div class="progress-bar bg-primary" style="width: 75%;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card premium-card bg-white p-3 border-start border-danger border-4">
+            <h6 class="text-muted fw-bold">Students At Risk</h6>
+            <h2 class="fw-bold text-danger">106</h2>
+            <small class="text-danger"><i class="fas fa-exclamation-circle"></i> Requires Intervention</small>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card premium-card p-4 h-100">
+            <h5 class="fw-bold text-dark mb-4">Average GPA Trend (Last 6 Months)</h5>
+            <canvas id="gpaTrendChart" height="100"></canvas>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card premium-card p-4 h-100">
+            <h5 class="fw-bold text-dark mb-4">Grade by Subject</h5>
+            
+            <p class="mb-1 fw-bold text-secondary small">Maths <span class="float-end">85%</span></p>
+            <div class="progress progress-thin mb-3"><div class="progress-bar bg-primary" style="width: 85%;"></div></div>
+            
+            <p class="mb-1 fw-bold text-secondary small">Science <span class="float-end">72%</span></p>
+            <div class="progress progress-thin mb-3"><div class="progress-bar bg-success" style="width: 72%;"></div></div>
+            
+            <p class="mb-1 fw-bold text-secondary small">English <span class="float-end">90%</span></p>
+            <div class="progress progress-thin mb-3"><div class="progress-bar bg-warning" style="width: 90%;"></div></div>
+            
+            <p class="mb-1 fw-bold text-secondary small">History <span class="float-end">65%</span></p>
+            <div class="progress progress-thin mb-3"><div class="progress-bar bg-danger" style="width: 65%;"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card premium-card p-4">
+            <h5 class="fw-bold text-dark mb-3">Recent Student Evaluations</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Overall Progress</th>
+                            <th>Risk Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td class="fw-bold">John Harper</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">87%</span>
+                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-success" style="width: 87%;"></div></div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge bg-success text-white">Safe</span></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td class="fw-bold">Tony McKenzie</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">44%</span>
+                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-warning" style="width: 44%;"></div></div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge bg-warning text-dark">Medium</span></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td class="fw-bold">Polly Lamb</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">12%</span>
+                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-danger" style="width: 12%;"></div></div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge bg-danger text-white">At-Risk</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card premium-card p-4 h-100">
+            <h5 class="fw-bold text-dark mb-3">Risk Distribution</h5>
+            <canvas id="riskDonut" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // GPA Trend Line/Area Chart
+    const ctx1 = document.getElementById('gpaTrendChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+            datasets: [{
+                label: 'Average GPA',
+                data: [3.1, 3.2, 3.0, 3.4, 3.3, 3.42],
+                borderColor: '#6f42c1',
+                backgroundColor: 'rgba(111, 66, 193, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4 // Curves the line
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Risk Donut Chart
+    const ctx2 = document.getElementById('riskDonut').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Safe (Low Risk)', 'Monitor (Medium)', 'At-Risk (High)'],
+            datasets: [{
+                data: [75, 20, 5],
+                backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                borderWidth: 0,
+                hoverOffset: 5
+            }]
+        },
+        options: { responsive: true, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+    });
+</script>
+{% endblock %}
