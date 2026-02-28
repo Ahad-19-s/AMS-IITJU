@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Helvetica, sans-serif; color: #333; }
+        h1 { text-align: center; color: #4e73df; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .risk-high { color: red; font-weight: bold; }
+        .risk-low { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Official Academic Report</h1>
+    <p style="text-align: center;">Smart Academic System Generated Report</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>GPA</th>
+                <th>Attendance</th>
+                <th>Risk Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for std in students %}
+            <tr>
+                <td>{{ std.id }}</td>
+                <td>{{ std.name }}</td>
+                <td>{{ std.gpa }}</td>
+                <td>{{ std.attendance }}%</td>
+                <td class="{% if std.risk == 'High' %}risk-high{% else %}risk-low{% endif %}">
+                    {{ std.risk }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

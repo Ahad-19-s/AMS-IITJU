@@ -14,8 +14,8 @@
         Interactive Student Performance 🎓
     </h2>
     <div class="user-profile d-flex align-items-center bg-white px-3 py-2 rounded-pill shadow-sm">
-        <span class="me-3 fw-bold text-secondary">Principal Carter</span>
-        <img src="https://ui-avatars.com/api/?name=Principal+Carter&background=6f42c1&color=fff&rounded=true" width="40">
+        <span class="me-3 fw-bold text-secondary">Welcome, {{ request.user.username|title }}</span>
+        <img src="https://ui-avatars.com/api/?name={{ request.user.username }}&background=6f42c1&color=fff&rounded=true" width="40">
     </div>
 </div>
 
@@ -23,33 +23,33 @@
     <div class="col-md-3">
         <div class="card premium-card bg-white p-3">
             <h6 class="text-muted fw-bold">Total Students</h6>
-            <h2 class="fw-bold" style="color: #6f42c1;">3,457</h2>
-            <small class="text-success"><i class="fas fa-arrow-up"></i> 4.5% from last year</small>
+            <h2 class="fw-bold" style="color: #6f42c1;">{{ total_students }}</h2>
+            <small class="text-success"><i class="fas fa-database"></i> Live Data</small>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card premium-card bg-white p-3">
             <h6 class="text-muted fw-bold">Average Attendance</h6>
-            <h2 class="fw-bold text-info">83.7%</h2>
+            <h2 class="fw-bold text-info">{{ avg_attendance }}%</h2>
             <div class="progress progress-thin mt-2">
-                <div class="progress-bar bg-info" style="width: 83.7%;"></div>
+                <div class="progress-bar bg-info" style="width: {{ avg_attendance }}%;"></div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card premium-card bg-white p-3">
             <h6 class="text-muted fw-bold">Average GPA</h6>
-            <h2 class="fw-bold text-primary">3.42</h2>
+            <h2 class="fw-bold text-primary">{{ avg_gpa }}</h2>
             <div class="progress progress-thin mt-2">
-                <div class="progress-bar bg-primary" style="width: 75%;"></div>
+                <div class="progress-bar bg-primary" style="width: calc({{ avg_gpa }} / 4 * 100%);"></div>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card premium-card bg-white p-3 border-start border-danger border-4">
             <h6 class="text-muted fw-bold">Students At Risk</h6>
-            <h2 class="fw-bold text-danger">106</h2>
-            <small class="text-danger"><i class="fas fa-exclamation-circle"></i> Requires Intervention</small>
+            <h2 class="fw-bold text-danger">{{ risk_students }}</h2>
+            <small class="text-danger"><i class="fas fa-exclamation-circle"></i> Requires Attention</small>
         </div>
     </div>
 </div>
@@ -62,121 +62,249 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card premium-card p-4 h-100">
-            <h5 class="fw-bold text-dark mb-4">Grade by Subject</h5>
-            
-            <p class="mb-1 fw-bold text-secondary small">Maths <span class="float-end">85%</span></p>
-            <div class="progress progress-thin mb-3"><div class="progress-bar bg-primary" style="width: 85%;"></div></div>
-            
-            <p class="mb-1 fw-bold text-secondary small">Science <span class="float-end">72%</span></p>
-            <div class="progress progress-thin mb-3"><div class="progress-bar bg-success" style="width: 72%;"></div></div>
-            
-            <p class="mb-1 fw-bold text-secondary small">English <span class="float-end">90%</span></p>
-            <div class="progress progress-thin mb-3"><div class="progress-bar bg-warning" style="width: 90%;"></div></div>
-            
-            <p class="mb-1 fw-bold text-secondary small">History <span class="float-end">65%</span></p>
-            <div class="progress progress-thin mb-3"><div class="progress-bar bg-danger" style="width: 65%;"></div></div>
+    <div class="card premium-card p-4 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold text-dark mb-0">Avg. Subject Grades</h5>
+            <select id="semesterSelect" class="form-select form-select-sm shadow-none border-primary text-primary fw-bold" style="width: auto; border-radius: 20px;">
+                <option value="1-1">1-1</option>
+                <option value="1-2">1-2</option>
+                <option value="2-1">2-1</option>
+                <option value="2-2">2-2</option>
+                <option value="3-1">3-1</option>
+                <option value="3-2">3-2</option>
+                <option value="4-1">4-1</option>
+                <option value="4-2">4-2</option>
+            </select>
         </div>
+
+        <div id="subjectContainer" style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+            </div>
     </div>
+</div>
 </div>
 
 <div class="row">
     <div class="col-md-8">
         <div class="card premium-card p-4">
             <h5 class="fw-bold text-dark mb-3">Recent Student Evaluations</h5>
+            
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th>#</th>
+                            <th>ID</th>
                             <th>Full Name</th>
-                            <th>Overall Progress</th>
-                            <th>Risk Status</th>
+                            <th>Attendance</th>
+                            <th>GPA</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for student in recent_students %}
                         <tr>
-                            <td>1</td>
-                            <td class="fw-bold">John Harper</td>
+                            <td>{{ student.student_id }}</td>
+                            <td class="fw-bold">{{ student.name }}</td>
+                            
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <span class="me-2">87%</span>
-                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-success" style="width: 87%;"></div></div>
+                                    <span class="me-2">{{ student.attendance }}%</span>
+                                    <div class="progress progress-thin w-100" style="height: 6px; width: 100px;">
+                                        <div class="progress-bar {% if student.attendance < 60 %}bg-danger{% else %}bg-success{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ student.attendance }}%;">
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
-                            <td><span class="status-badge bg-success text-white">Safe</span></td>
-                        </tr>
-                        <tr>
-                            <td>2</td>
-                            <td class="fw-bold">Tony McKenzie</td>
+
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <span class="me-2">44%</span>
-                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-warning" style="width: 44%;"></div></div>
-                                </div>
+                                <span class="fw-bold text-primary">{{ student.gpa }}</span>
                             </td>
-                            <td><span class="status-badge bg-warning text-dark">Medium</span></td>
-                        </tr>
-                        <tr>
-                            <td>3</td>
-                            <td class="fw-bold">Polly Lamb</td>
+
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <span class="me-2">12%</span>
-                                    <div class="progress progress-thin w-100"><div class="progress-bar bg-danger" style="width: 12%;"></div></div>
-                                </div>
+                                {% if student.risk_status == "At Risk" %}
+                                    <span class="badge bg-danger">At Risk</span>
+                                {% else %}
+                                    <span class="badge bg-success">Safe</span>
+                                {% endif %}
                             </td>
-                            <td><span class="status-badge bg-danger text-white">At-Risk</span></td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No evaluated students found.</td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
+
+            {% if recent_students.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center mb-0">
+                    
+                    {% if recent_students.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link shadow-none" href="?page={{ recent_students.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link shadow-none">&laquo;</span>
+                    </li>
+                    {% endif %}
+
+                    {% for i in recent_students.paginator.page_range %}
+                        {% if recent_students.number == i %}
+                            <li class="page-item active"><span class="page-link shadow-none">{{ i }}</span></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link shadow-none" href="?page={{ i }}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if recent_students.has_next %}
+                    <li class="page-item">
+                        <a class="page-link shadow-none" href="?page={{ recent_students.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link shadow-none">&raquo;</span>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+            {% endif %}
+            </div>
     </div>
     
     <div class="col-md-4">
         <div class="card premium-card p-4 h-100">
             <h5 class="fw-bold text-dark mb-3">Risk Distribution</h5>
             <canvas id="riskDonut" height="200"></canvas>
+            <div class="text-center mt-3">
+                <small class="text-muted">Based on total registered students</small>
+            </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // GPA Trend Line/Area Chart
+    // --- 1. GPA Trend Chart (Static/Demo for now) ---
     const ctx1 = document.getElementById('gpaTrendChart').getContext('2d');
     new Chart(ctx1, {
         type: 'line',
         data: {
-            labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+            labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Current'],
             datasets: [{
-                label: 'Average GPA',
-                data: [3.1, 3.2, 3.0, 3.4, 3.3, 3.42],
+                label: 'Average GPA Trend',
+                data: [3.1, 3.2, 3.0, {{ avg_gpa }}], // শেষ ভ্যালুটা রিয়েল
                 borderColor: '#6f42c1',
                 backgroundColor: 'rgba(111, 66, 193, 0.2)',
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4 // Curves the line
+                tension: 0.4
             }]
         },
         options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
-    // Risk Donut Chart
+    // --- 2. Risk Donut Chart (Real Calculation) ---
+    // Django ভেরিয়েবল গুলোকে জাভাস্ক্রিপ্ট ভেরিয়েবলে নেওয়া হচ্ছে
+    const totalStudents = {{ total_students }};
+    const riskStudents = {{ risk_students }};
+    const safeStudents = totalStudents - riskStudents;
+
     const ctx2 = document.getElementById('riskDonut').getContext('2d');
     new Chart(ctx2, {
         type: 'doughnut',
         data: {
-            labels: ['Safe (Low Risk)', 'Monitor (Medium)', 'At-Risk (High)'],
+            labels: ['Safe', 'At-Risk'],
             datasets: [{
-                data: [75, 20, 5],
-                backgroundColor: ['#198754', '#ffc107', '#dc3545'],
+                data: [safeStudents, riskStudents], // এখানে ক্যালকুলেট করা ডাটা বসবে
+                backgroundColor: ['#198754', '#dc3545'],
                 borderWidth: 0,
                 hoverOffset: 5
             }]
         },
-        options: { responsive: true, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+        options: { 
+            responsive: true, 
+            cutout: '70%', 
+            plugins: { 
+                legend: { position: 'bottom' },
+                title: { display: true, text: 'Safe vs At-Risk Ratio' }
+            } 
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // ১. ডাটা রিসিভ করা (এখানে escapejs ফিল্টার খুব জরুরি)
+        const rawData = '{{ subject_performance_json|escapejs }}'; 
+        let dbData = {};
+
+        try {
+            // যদি ডাটা না আসে, খালি অবজেক্ট ধরবে
+            if (rawData) {
+                dbData = JSON.parse(rawData);
+            }
+        } catch (e) {
+            console.error("JSON Parsing Error:", e);
+        }
+
+        const container = document.getElementById('subjectContainer');
+        const selector = document.getElementById('semesterSelect');
+
+        function renderSubjects(semester) {
+            // আগে কন্টেইনার পরিষ্কার করা
+            container.innerHTML = '';
+            
+            const data = dbData[semester];
+
+            // যদি ওই সেমিস্টারে ডাটা না থাকে
+            if (!data || data.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center mt-5">
+                        <p class="text-muted">No data available for ${semester}</p>
+                    </div>`;
+                return;
+            }
+
+            // ডাটা লুপ করে কার্ড বানানো
+            data.forEach(item => {
+                let colorClass = 'bg-success';
+                if (item.score < 60) colorClass = 'bg-danger';
+                else if (item.score < 75) colorClass = 'bg-warning';
+                else if (item.score < 85) colorClass = 'bg-info';
+
+                const html = `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-bold text-secondary small">${item.subject}</span>
+                            <span class="fw-bold small text-dark">${item.score}%</span>
+                        </div>
+                        <div class="progress" style="height: 10px; background-color: #e9ecef; border-radius: 5px;">
+                            <div class="progress-bar ${colorClass}" role="progressbar" 
+                                 style="width: ${item.score}%" 
+                                 aria-valuenow="${item.score}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        // ইভেন্ট লিসেনার যোগ করা
+        if (selector) {
+            selector.addEventListener('change', function() {
+                renderSubjects(this.value);
+            });
+            // ডিফল্ট ভ্যালু লোড করা (1-1)
+            renderSubjects(selector.value);
+        }
     });
 </script>
 {% endblock %}

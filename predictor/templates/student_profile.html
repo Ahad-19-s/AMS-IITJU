@@ -1,0 +1,265 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+    /* কাস্টম স্টাইল */
+    .glass-card { 
+        background: #ffffff; 
+        border-radius: 15px; 
+        border: none; 
+        box-shadow: 0 5px 20px rgba(0,0,0,0.05); 
+        transition: transform 0.2s;
+    }
+    .glass-card:hover { transform: translateY(-3px); }
+    
+    .avatar-large { 
+        width: 70px; 
+        height: 70px; 
+        background-color: #f8f9fa; 
+        border-radius: 50%; 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        font-size: 28px; 
+        font-weight: bold; 
+        color: #4e73df; 
+        border: 2px solid #e3e6f0;
+    }
+
+    .chart-card { 
+        height: 260px; 
+        padding: 15px; 
+        border-radius: 12px; 
+        border: 1px solid #f0f0f0; 
+        background: #fff; 
+        margin-bottom: 20px; 
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
+    }
+    .chart-title { 
+        font-size: 13px; 
+        font-weight: 700; 
+        color: #858796; 
+        text-transform: uppercase; 
+        margin-bottom: 15px; 
+        display: block; 
+        text-align: center;
+        letter-spacing: 1px;
+    }
+</style>
+
+<div class="container-fluid">
+    
+    <div class="card glass-card p-4 mb-4 border-left-primary">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="avatar-large me-4 shadow-sm">
+                    {{ student.name|slice:":1" }}
+                </div>
+                <div>
+                    <h2 class="fw-bold mb-1 text-dark">{{ student.name }}</h2>
+                    <p class="text-muted mb-0">ID: <span class="badge bg-primary">{{ student.student_id }}</span></p>
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="text-xs font-weight-bold text-uppercase text-muted mb-1">Total Semesters</span>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ records.count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-graduation-cap text-primary me-1"></i> GPA Trend</span>
+                <div style="height: 200px;"><canvas id="chartGPA"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-user-clock text-success me-1"></i> Attendance (%)</span>
+                <div style="height: 200px;"><canvas id="chartAttendance"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-pen-alt text-warning me-1"></i> Quiz Marks</span>
+                <div style="height: 200px;"><canvas id="chartQuiz"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-book text-info me-1"></i> Assignment</span>
+                <div style="height: 200px;"><canvas id="chartAssignment"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-file-alt text-secondary me-1"></i> Midterm</span>
+                <div style="height: 200px;"><canvas id="chartMidterm"></canvas></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-flag-checkered text-danger me-1"></i> Final Exam</span>
+                <div style="height: 200px;"><canvas id="chartFinal"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card glass-card p-4 mb-4 border-bottom-info">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h4 class="fw-bold text-gray-800"><i class="fas fa-robot text-info me-2"></i>AI Risk Predictor</h4>
+                <p class="text-muted mb-0 small">Based on overall academic history analysis</p>
+            </div>
+
+            {% if not prediction %}
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info btn-icon-split shadow-sm">
+                    <span class="icon text-white-50">
+                        <i class="fas fa-search-chart"></i>
+                    </span>
+                    <span class="text">Analyze Risk Now</span>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if prediction %}
+        <hr class="my-3">
+        <div class="alert {% if prediction == 'High Risk' %}alert-danger{% else %}alert-success{% endif %} d-flex align-items-center shadow-sm" role="alert">
+            {% if prediction == 'High Risk' %}
+                <div class="me-3">
+                    <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading fw-bold">High Dropout Risk Detected!</h5>
+                    <p class="mb-0">GPA/Attendance is critically low. Immediate counseling recommended.</p>
+                </div>
+            {% else %}
+                <div class="me-3">
+                    <i class="fas fa-check-circle fa-3x text-success"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading fw-bold">Student is Safe</h5>
+                    <p class="mb-0">Academic performance is stable. No immediate action required.</p>
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card glass-card mb-4">
+        <div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Academic History Log</h6>
+        </div>
+        <div class="table-responsive p-3">
+            <table class="table table-bordered table-hover align-middle text-center" width="100%" cellspacing="0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Semester</th>
+                        <th>GPA</th>
+                        <th>Attendance</th>
+                        <th>Quiz</th>
+                        <th>Assignment</th>
+                        <th>Midterm</th>
+                        <th>Final</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td class="fw-bold text-primary">{{ record.semester }}</td>
+                        <td><span class="badge {% if record.gpa < 2.5 %}bg-danger{% else %}bg-success{% endif %}">{{ record.gpa }}</span></td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if record.attendance < 60 %}bg-danger{% else %}bg-info{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ record.attendance }}%;" 
+                                     aria-valuenow="{{ record.attendance }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ record.attendance }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ record.quiz|default:"-" }}</td>
+                        <td>{{ record.assignment|default:"-" }}</td>
+                        <td>{{ record.midterm|default:"-" }}</td>
+                        <td>{{ record.final|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">No academic records found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // নিরাপদভাবে জ্যাঙ্গো থেকে জাভাস্ক্রিপ্ট অ্যারে তৈরি করা হচ্ছে
+    const labels = [{% for r in records %}"{{ r.semester }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // ডাটা সেট তৈরি (GPA)
+    const gpaData = [{% for r in records %}{{ r.gpa|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    
+    // ডাটা সেট তৈরি (Attendance)
+    const attData = [{% for r in records %}{{ r.attendance|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // অন্যান্য মার্কস
+    const quizData = [{% for r in records %}{{ r.quiz|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const assData = [{% for r in records %}{{ r.assignment|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const midData = [{% for r in records %}{{ r.midterm|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    const finalData = [{% for r in records %}{{ r.final|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    // চার্ট জেনারেটর ফাংশন
+    function createChart(ctxId, label, data, color, bgColor, isGPA=false) {
+        const ctx = document.getElementById(ctxId);
+        if(ctx) {
+            new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: bgColor,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: isGPA ? false : true,
+                            suggestedMin: isGPA ? 2.0 : 0,
+                            suggestedMax: isGPA ? 4.0 : 100,
+                            grid: { borderDash: [2, 2], drawBorder: false }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    }
+
+    // চার্ট রেন্ডারিং
+    createChart('chartGPA', 'GPA', gpaData, '#4e73df', 'rgba(78, 115, 223, 0.05)', true);
+    createChart('chartAttendance', 'Attendance', attData, '#1cc88a', 'rgba(28, 200, 138, 0.05)');
+    createChart('chartQuiz', 'Quiz', quizData, '#f6c23e', 'rgba(246, 194, 62, 0.05)');
+    createChart('chartAssignment', 'Assignment', assData, '#36b9cc', 'rgba(54, 185, 204, 0.05)');
+    createChart('chartMidterm', 'Midterm', midData, '#858796', 'rgba(133, 135, 150, 0.05)');
+    createChart('chartFinal', 'Final', finalData, '#e74a3b', 'rgba(231, 74, 59, 0.05)');
+
+</script>
+
+{% endblock %}
