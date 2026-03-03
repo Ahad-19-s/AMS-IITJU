@@ -47,15 +47,55 @@
             </div>
             <div class="text-end">
                 <span class="small fw-bold text-uppercase text-muted mb-1">Total Semesters</span>
-                <div class="h3 mb-0 fw-bold text-dark">{{ records.count }}</div>
+                <div class="h3 mb-0 fw-bold text-dark">{{ total_semesters }}</div>
             </div>
         </div>
+    </div>
+
+    <div class="card glass-card p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-dark"><i class="fas fa-robot text-info me-2"></i>AI Risk Verdict</h4>
+            <span class="badge bg-secondary">Trend Analysis</span>
+        </div>
+
+        {% if prediction %}
+        <div class="alert {% if prediction == 'High Risk' %}alert-danger{% else %}alert-success{% endif %} shadow-sm mb-0" role="alert">
+            <div class="d-flex align-items-center">
+                {% if prediction == 'High Risk' %}
+                    <i class="fas fa-exclamation-triangle fa-3x me-3 text-danger"></i>
+                {% else %}
+                    <i class="fas fa-check-circle fa-3x me-3 text-success"></i>
+                {% endif %}
+                
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading fw-bold mb-1">
+                        {% if prediction == 'High Risk' %}High Risk Detected!{% else %}Student is Safe{% endif %}
+                    </h5>
+                    <p class="mb-0">
+                        {{ explanation|default:"Based on academic history analysis." }}
+                    </p>
+                    <small class="text-muted mt-1 d-block">
+                        Risk detected in <strong>{{ risk_count }}</strong> out of <strong>{{ total_semesters }}</strong> semesters.
+                    </small>
+                </div>
+
+                {% if prediction_prob > 0 %}
+                <div class="text-end ms-3 border-start ps-3">
+                    <span class="d-block text-uppercase small fw-bold opacity-75">Confidence</span>
+                    <span class="display-6 fw-bold">{{ prediction_prob }}%</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+            <div class="alert alert-warning">Not enough data to generate a prediction.</div>
+        {% endif %}
     </div>
 
     <div class="row">
         <div class="col-md-4">
             <div class="chart-card">
-                <span class="chart-title"><i class="fas fa-graduation-cap text-primary me-1"></i> GPA Trend</span>
+                <span class="chart-title"><i class="fas fa-graduation-cap text-primary me-1"></i> CGPA Trend</span>
                 <div style="height: 200px;"><canvas id="chartGPA"></canvas></div>
             </div>
         </div>
@@ -91,66 +131,17 @@
         </div>
     </div>
 
-    <div class="card glass-card p-4 mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
-            <div>
-                <h4 class="fw-bold text-dark"><i class="fas fa-robot text-info me-2"></i>AI Risk Predictor</h4>
-                <p class="text-muted mb-0 small">Based on average performance across all semesters.</p>
-            </div>
-
-            {% if not prediction %}
-            <form method="POST">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-info shadow-sm fw-bold text-white">
-                    <i class="fas fa-search-chart me-2"></i> Analyze Risk Now
-                </button>
-            </form>
-            {% endif %}
-        </div>
-
-        {% if prediction %}
-        <hr class="my-3">
-        <div class="alert {% if prediction == 'High Risk' %}alert-danger{% else %}alert-success{% endif %} shadow-sm mb-0" role="alert">
-            <div class="d-flex align-items-center">
-                {% if prediction == 'High Risk' %}
-                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
-                {% else %}
-                    <i class="fas fa-check-circle fa-2x me-3"></i>
-                {% endif %}
-                <div class="flex-grow-1">
-                    <h5 class="alert-heading fw-bold mb-1">
-                        {% if prediction == 'High Risk' %}High Dropout Risk Detected!{% else %}Student is Safe{% endif %}
-                    </h5>
-                    <p class="mb-0 small">
-                        {% if prediction == 'High Risk' %}
-                            Student shows signs of academic struggle based on historical data.
-                        {% else %}
-                            Performance is stable and consistent.
-                        {% endif %}
-                    </p>
-                </div>
-                {% if prediction_prob > 0 %}
-                <div class="text-end ms-3">
-                    <span class="d-block text-uppercase small fw-bold opacity-75">Risk Probability</span>
-                    <span class="display-6 fw-bold">{{ prediction_prob }}%</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
     <div class="card glass-card mb-4">
         <div class="card-header bg-white py-3">
-            <h6 class="m-0 fw-bold text-primary">Academic History Log</h6>
+            <h6 class="m-0 fw-bold text-primary">Academic History Log (Per Semester)</h6>
         </div>
         <div class="table-responsive p-3">
             <table class="table table-bordered table-hover align-middle text-center">
                 <thead class="bg-light text-secondary">
                     <tr>
                         <th>Semester</th>
-                        <th>GPA</th>
-                        <th>Attendance (Days)</th>
+                        <th>AI Status</th> <th>CGPA</th>
+                        <th>Attendance (24 Days)</th>
                         <th>Tutorial (20)</th>
                         <th>Assign (10)</th>
                         <th>Incourse (40)</th>
@@ -160,7 +151,19 @@
                 <tbody>
                     {% for record in records %}
                     <tr class="academic-row" data-attendance-days="{{ record.attendance|default:0 }}">
+                        
                         <td class="fw-bold text-primary">{{ record.semester }}</td>
+                        
+                        <td>
+                            {% if record.ai_status == 'High Risk' or record.ai_status == 'Risk' %}
+                                <span class="badge bg-danger px-2 py-1"><i class="fas fa-exclamation-circle me-1"></i>Risk</span>
+                            {% elif record.ai_status == 'Safe' %}
+                                <span class="badge bg-success px-2 py-1"><i class="fas fa-check me-1"></i>Safe</span>
+                            {% else %}
+                                <span class="badge bg-secondary">-</span>
+                            {% endif %}
+                        </td>
+
                         <td><span class="badge {% if record.gpa < 2.5 %}bg-danger{% else %}bg-success{% endif %}">{{ record.gpa }}</span></td>
                         
                         <td style="min-width: 150px;">
@@ -181,7 +184,7 @@
                         <td>{{ record.final|default:"-" }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="text-center text-muted py-4">No academic records found.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">No academic records found.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -193,9 +196,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // ==========================================
-    // কনফিগারেশন: মোট ক্লাস সংখ্যা এখানে সেট করুন
+    // কনফিগারেশন: মোট ক্লাস সংখ্যা ২৪
     // ==========================================
-    const TOTAL_CLASSES = 24; // ধরে নিচ্ছি মোট ক্লাস ৬০টি। প্রয়োজন হলে পরিবর্তন করুন।
+    const TOTAL_CLASSES = 24; 
 
     // --- ১. ডাটা প্রিপারেশন ---
     const labels = [{% for r in records %}"{{ r.semester }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
@@ -207,10 +210,9 @@
     // Attendance Data কে Percentage এ কনভার্ট করা (চার্টের জন্য)
     const attPercentageData = rawAttDays.map(days => {
         let percent = (days / TOTAL_CLASSES) * 100;
-        return percent > 100 ? 100 : percent.toFixed(1); // ১০০ এর বেশি হলে ১০০ রাখবে
+        return percent > 100 ? 100 : percent.toFixed(1); 
     });
 
-    // Marks Data
     const quizData = [{% for r in records %}{{ r.quiz|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const assData = [{% for r in records %}{{ r.assignment|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const midData = [{% for r in records %}{{ r.midterm|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
@@ -224,10 +226,8 @@
             const days = parseFloat(row.getAttribute('data-attendance-days'));
             let percent = (days / TOTAL_CLASSES) * 100;
             
-            // Limit to 100%
             if(percent > 100) percent = 100;
             
-            // Update Text
             const percentText = row.querySelector('.attendance-percent');
             const progressBar = row.querySelector('.attendance-bar');
             
@@ -235,7 +235,6 @@
                 percentText.innerText = percent.toFixed(0) + "%";
                 progressBar.style.width = percent + "%";
                 
-                // Color Change based on percentage
                 if(percent < 60) {
                     progressBar.className = 'progress-bar attendance-bar bg-danger';
                 } else if (percent < 80) {
@@ -247,7 +246,7 @@
         });
     });
 
-    // --- ৩. চার্ট ফাংশন ---
+    // --- ৩. চার্ট ফাংশন (Chart.js) ---
     function createChart(ctxId, label, data, color, bgColor, maxScale) {
         const ctx = document.getElementById(ctxId);
         if(ctx) {
@@ -286,10 +285,7 @@
 
     // --- Render Charts ---
     createChart('chartGPA', 'GPA', gpaData, '#4e73df', 'rgba(78, 115, 223, 0.1)', 4.0);
-    
-    // এখানে attPercentageData ব্যবহার করা হয়েছে (Days নয়, Percentage দেখাবে)
     createChart('chartAttendance', 'Attendance (%)', attPercentageData, '#1cc88a', 'rgba(28, 200, 138, 0.1)', 100);
-    
     createChart('chartQuiz', 'Tutorial', quizData, '#f6c23e', 'rgba(246, 194, 62, 0.1)', 20);
     createChart('chartAssignment', 'Assignment', assData, '#36b9cc', 'rgba(54, 185, 204, 0.1)', 10);
     createChart('chartMidterm', 'Incourse', midData, '#858796', 'rgba(133, 135, 150, 0.1)', 40);

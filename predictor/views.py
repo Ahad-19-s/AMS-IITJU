@@ -27,7 +27,7 @@ from .forms import StudentForm, CourseForm, AcademicRecordForm, SubjectScoreForm
 # ==========================================
 # 🔑 API CONFIGURATION
 # ==========================================
-GOOGLE_API_KEY = "AIzaSyBdtmf4wjAE-As2nGXlRSymy2Z3xQ8ilmE"
+GOOGLE_API_KEY = "AIzaSyDJd7w-gqIrXoL6aXUtnfPS5UfVBJdaKaE"
 
  # এই লাইনটি ফাইলের একদম উপরে import সেকশনে থাকতে হবে
 
@@ -89,98 +89,221 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 import json
 
-# আপনার মডেলগুলো ইম্পোর্ট করুন (StudentSubjectScore ও Course যোগ করা হয়েছে)
+
 from .models import Student, AcademicRecord, Course, StudentSubjectScore
 
 @login_required(login_url='login')
 def dashboard(request):
-    # ==========================================
-    # ১. আগের কোড (Total, Attendance, GPA, Risk, Trend)
-    # ==========================================
-    
-    # ১. মোট ছাত্র সংখ্যা
+   
+  
     total_students = Student.objects.count()
 
-    # ২. অ্যাটেনডেন্স ক্যালকুলেশন (২৪ দিনের ভিত্তিতে)
+    
     TOTAL_CLASS_DAYS = 24
     
-    # ডাটাবেস থেকে গড় দিন (Days) বের করা
+    
     avg_att_days = AcademicRecord.objects.aggregate(Avg('attendance'))['attendance__avg'] or 0
     
-    # দিনকে পার্সেন্টেজে কনভার্ট করা: (প্রাপ্ত দিন / ২৪) * ১০০
+   
     avg_attendance_percent = (avg_att_days / TOTAL_CLASS_DAYS) * 100
     
-    # ১০০% এর বেশি যেন না দেখায়
+    
     if avg_attendance_percent > 100:
         avg_attendance_percent = 100
 
-    # ৩. ওভারঅল জিপিএ (Overall CGPA)
+    # ৩. (Overall CGPA)
     overall_gpa = AcademicRecord.objects.aggregate(Avg('gpa'))['gpa__avg'] or 0
+# ==========================================
+    # ৪. Risk Analysis (AI Driven)
+    # ==========================================
+    
+    # প্রথমে মডেল লোড করা
+    model_path = os.path.join(settings.BASE_DIR, 'risk_model.pkl')
+    model = None
+    try:
+        model = joblib.load(model_path)
+    except:
+        print("⚠️ Dashboard: Risk Model not found, using manual fallback.")
 
-    # ৪. রিস্ক স্টুডেন্ট বের করা (যাদের জিপিএ ২.৫০ এর নিচে)
-    risk_count = AcademicRecord.objects.filter(gpa__lt=2.50).count()
+    risk_count = 0
+    TOTAL_CLASS_DAYS = 24
+
+    # সব ছাত্রকে মডেল দিয়ে চেক করা
+    all_students_check = Student.objects.all()
+
+    if model:
+        for student in all_students_check:
+            records = AcademicRecord.objects.filter(student=student).order_by('semester')
+            
+            if not records.exists():
+                continue
+
+            # Trend Analysis Logic
+            sem_risk_count = 0
+            total_sems = records.count()
+            last_sem_status = "Safe"
+            is_at_risk = False
+
+            for record in records:
+                # ইনপুট তৈরি
+                r_att = record.attendance if record.attendance else 0
+                r_pct = (r_att / TOTAL_CLASS_DAYS) * 100
+                if r_pct > 100: r_pct = 100
+
+                input_data = pd.DataFrame([{
+                    'Attendance': r_pct,
+                    'Assignment': record.assignment or 0,
+                    'Quiz': record.quiz or 0,
+                    'Midterm': record.midterm or 0,
+                    'Final': record.final or 0,
+                    'Previous_GPA': record.gpa
+                }])
+                
+
+                # প্রেডিকশন
+                try:
+                    pred = model.predict(input_data)[0]
+                    if pred == 'High Risk' or pred == 'Risk':
+                        sem_risk_count += 1
+                        last_sem_status = "High Risk"
+                    else:
+                        last_sem_status = "Safe"
+                except:
+                    pass
+            
+            # --- Final Verdict ---
+            # ১. শেষ সেমিস্টার খারাপ হলে -> Risk
+            # ২. অথবা মোট সেমিস্টারের ৫০% এর বেশি খারাপ হলে -> Risk
+            if last_sem_status == "High Risk":
+                is_at_risk = True
+            elif sem_risk_count >= (total_sems / 2):
+                is_at_risk = True
+            
+            if is_at_risk:
+                risk_count += 1
+    else:
+        # মডেল না থাকলে ম্যানুয়াল ফলব্যাক
+        # আমরা দেখব কতজন ছাত্রের শেষ সেমিস্টারের জিপিএ ২.৫০ এর নিচে
+        risk_count = 0
+        for student in all_students_check:
+            last_rec = AcademicRecord.objects.filter(student=student).last()
+            if last_rec and last_rec.gpa < 2.50:
+                risk_count += 1
+
+    # Safe Count বের করা
     safe_count = total_students - risk_count
 
-    # ৫. চার্ট ডাটা: Average CGPA Trend (সেমিস্টার অনুযায়ী)
+    # ৫.  Average CGPA Trend 
     semester_data = AcademicRecord.objects.values('semester').annotate(avg_gpa=Avg('gpa')).order_by('semester')
     sem_labels = [data['semester'] for data in semester_data]
     sem_gpa = [round(data['avg_gpa'], 2) for data in semester_data]
 
  # ==========================================
-    # ৫. Recent Student Evaluations (Unique Students)
+    # ৫. Recent Student Evaluations (With AI Trend Analysis)
     # ==========================================
     
+    # ১. মডেল লোড করা
+    model_path = os.path.join(settings.BASE_DIR, 'risk_model.pkl')
+    model = None
+    try:
+        model = joblib.load(model_path)
+    except:
+        print("⚠️ Risk Model not found!")
+
+    TOTAL_CLASS_DAYS = 24
     recent_records = []
+    
+    # যাদের রেকর্ড আছে তাদের খোঁজা
     students_with_records = Student.objects.filter(academicrecord__isnull=False).distinct()
 
     for student in students_with_records:
-        latest_record = AcademicRecord.objects.filter(student=student).order_by('-id').first()
+        # ছাত্রের সব রেকর্ড আনা (Trend Analysis এর জন্য)
+        all_records = AcademicRecord.objects.filter(student=student).order_by('semester')
+        
+        # ডিসপ্লের জন্য শেষের রেকর্ডটি নেওয়া
+        latest_record = all_records.last() 
         
         if latest_record:
-            # ডাটাবেজে যদি 'দিন' থাকে (যেমন: 14 বা 17)
-            present_days = latest_record.attendance 
-            total_days = 24
             
-            # পার্সেন্টেজ ক্যালকুলেশন: (উপস্থিত দিন / মোট দিন) * ১০০
-            calculated_percent = (present_days / total_days) * 100
+            # --- A. Display Calculation (Attendance) ---
+            present_days = latest_record.attendance if latest_record.attendance else 0
+            calculated_percent = (present_days / TOTAL_CLASS_DAYS) * 100
+            if calculated_percent > 100: calculated_percent = 100
             
-            # --- ভেরিয়েবল সেট করা ---
-            
-            # ১. যেখানে % দেখাবে (Progress Bar এবং বড় টেক্সট)
-            # এখন 14 এর বদলে 58.3 দেখাবে
             latest_record.att_percent = round(calculated_percent, 1)
-            latest_record.attendance = round(calculated_percent, 1)
-
-            # ২. যেখানে দিন দেখাবে (ছোট টেক্সট: 14/24 Days)
             latest_record.days_present = int(present_days)
+
+            # --- B. AI Prediction (Trend Analysis) ---
+            risk_count = 0
+            total_semesters = all_records.count()
+            last_sem_status = "Safe"
+            final_risk_status = "Safe" # ডিফল্ট
+
+            if model:
+                # লুপ চালিয়ে সব সেমিস্টার চেক করা
+                for record in all_records:
+                    # ইনপুট ডাটা তৈরি
+                    r_att = record.attendance if record.attendance else 0
+                    r_pct = (r_att / TOTAL_CLASS_DAYS) * 100
+                    if r_pct > 100: r_pct = 100
+
+                    input_data = pd.DataFrame([{
+                        'Attendance': r_pct,
+                        'Assignment': record.assignment or 0,
+                        'Quiz': record.quiz or 0,
+                        'Midterm': record.midterm or 0,
+                        'Final': record.final or 0,
+                        'Previous_GPA': record.gpa
+                    }])
+
+                    # প্রেডিকশন
+                    try:
+                        pred = model.predict(input_data)[0]
+                        if pred == 'High Risk' or pred == 'Risk':
+                            risk_count += 1
+                            last_sem_status = "High Risk"
+                        else:
+                            last_sem_status = "Safe"
+                    except:
+                        pass
+                
+                # --- Final Verdict Logic ---
+                # শেষ সেমিস্টার খারাপ অথবা মোট সেমিস্টারের অর্ধেক খারাপ হলে রিস্ক
+                if last_sem_status == "High Risk":
+                    final_risk_status = "High Risk"
+                elif risk_count >= (total_semesters / 2):
+                    final_risk_status = "High Risk"
+            
+            else:
+                # মডেল না থাকলে ম্যানুয়াল ফলব্যাক
+                if calculated_percent < 60 or latest_record.gpa < 2.5:
+                    final_risk_status = "High Risk"
+
+            # অবজেক্টের সাথে স্ট্যাটাস জুড়ে দেওয়া (HTML এ দেখানোর জন্য)
+            latest_record.ai_status = final_risk_status
             
             recent_records.append(latest_record)
 
+    # সর্টিং এবং স্লাইসিং
     recent_records.sort(key=lambda x: x.id, reverse=True)
     recent_records = recent_records[:5]
     
-    # ==========================================
-    # ৭. নতুন লজিক: Avg. Subject Grades
-    # ==========================================
+    
     semester_performance = {}
     semesters_list = ['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '4-1', '4-2']
     
     for sem in semesters_list:
-        # Course মডেল থেকে এই সেমিস্টারের সাবজেক্টগুলো খোঁজা
+        
         courses = Course.objects.filter(semester=sem)
         
         subject_data = []
         for course in courses:
-            # StudentSubjectScore থেকে 'marks' এর গড় বের করা
-            # (আগে ভুল করে 'score' লেখা ছিল, এখন ঠিক করা হয়েছে)
+          
             avg_marks = StudentSubjectScore.objects.filter(course=course).aggregate(Avg('marks'))['marks__avg']
             
             if avg_marks is not None:
                 subject_data.append({
-                    # ==========================================
-                    # পরিবর্তন: এখানে course.title ব্যবহার করা হয়েছে
-                    # আপনি চাইলে কোডসহ দেখাতে পারেন: f"{course.course_code}: {course.title}"
-                    # ==========================================
+                   
                     'name': course.title,  
                     
                     'score': round(avg_marks, 1),
@@ -258,106 +381,113 @@ def student_list(request):
 
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.db.models import Avg
 from .models import Student, AcademicRecord
 import joblib
-import numpy as np
+import pandas as pd
 import os
-
-# সঠিক মডেল পাথ সেট করুন (উদাহরণস্বরূপ: 'model.pkl')
-MODEL_PATH = 'academic_risk_model.pkl' 
-
-try:
-    if os.path.exists(MODEL_PATH):
-        model = joblib.load(MODEL_PATH)
-        print("Model loaded successfully!")
-    else:
-        model = None
-        print("Model file not found.")
-except Exception as e:
-    model = None
-    print(f"Error loading model: {e}")
+from django.conf import settings
 
 @login_required(login_url='login')
 def student_profile(request, student_id):
     
-    # ==========================================
-    # স্মার্ট সলিউশন: ID এবং Student_ID দুইভাবেই কাজ করবে
-    # ==========================================
+    # ১. স্টুডেন্ট খোঁজা
     try:
-        # ১. প্রথমে চেষ্টা করবে ডাটাবেস ID (Primary Key) দিয়ে খুঁজতে
         student = Student.objects.get(id=student_id)
     except (Student.DoesNotExist, ValueError):
-        # ২. যদি ID দিয়ে না পাওয়া যায়, তখন student_id (রোল নম্বর) দিয়ে খুঁজবে
-        # যদি এখানেও না পায়, কেবল তখনই 404 এরর দেখাবে
         student = get_object_or_404(Student, student_id=student_id)
     
-    # বাকি কোড আগের মতোই থাকবে
     records = AcademicRecord.objects.filter(student=student).order_by('semester')
 
-    # Attendance Logic (আপনার আগের ফিক্স)
-    for record in records:
-        if record.attendance:
-            record.attendance_int = int(record.attendance)
-        else:
-            record.attendance_int = 0
+    # ২. AI মডেল লোড করা
+    model_path = os.path.join(settings.BASE_DIR, 'risk_model.pkl')
+    model = None
+    try:
+        model = joblib.load(model_path)
+    except:
+        print("⚠️ risk_model.pkl not found!")
 
-    prediction = "No Data" # ডিফল্ট ভ্যালু সেট করা ভালো
-    prediction_prob = 0 
+    # ==========================================
+    # ৩. এভারেজ ক্যালকুলেশন এবং ফাইনাল সিদ্ধান্ত
+    # ==========================================
+    
+    final_prediction = "Unknown"
+    total_semesters = records.count()
+    TOTAL_CLASS_DAYS = 24
 
-    # Prediction Logic
-    if request.method == 'POST' and records.exists() and 'model' in globals():
+    # যোগফল রাখার জন্য ভেরিয়েবল
+    sum_attendance_pct = 0
+    sum_assignment = 0
+    sum_quiz = 0
+    sum_midterm = 0
+    sum_final = 0
+    sum_gpa = 0
+
+    if model and total_semesters > 0:
+        
+        # সব সেমিস্টারের ডাটা যোগ করা হচ্ছে
+        for record in records:
+            # Attendance কে পার্সেন্টেজে কনভার্ট করা
+            att_days = record.attendance if record.attendance else 0
+            att_percent = (att_days / TOTAL_CLASS_DAYS) * 100
+            if att_percent > 100: att_percent = 100
+            
+            sum_attendance_pct += att_percent
+            sum_assignment += (record.assignment or 0)
+            sum_quiz += (record.quiz or 0)
+            sum_midterm += (record.midterm or 0)
+            sum_final += (record.final or 0)
+            sum_gpa += (record.gpa or 0.0)
+
+        # গড় (Average) বের করা
+        avg_attendance = sum_attendance_pct / total_semesters
+        avg_assignment = sum_assignment / total_semesters
+        avg_quiz = sum_quiz / total_semesters
+        avg_midterm = sum_midterm / total_semesters
+        avg_final = sum_final / total_semesters
+        avg_gpa = sum_gpa / total_semesters
+
+        # AI এর জন্য ইনপুট তৈরি (গড় ডাটা দিয়ে)
+        input_data = pd.DataFrame([{
+            'Attendance': avg_attendance,
+            'Assignment': avg_assignment,
+            'Quiz': avg_quiz,
+            'Midterm': avg_midterm,
+            'Final': avg_final,
+            'Previous_GPA': avg_gpa
+        }])
+
+        # --- ফাইনাল প্রেডিকশন (একবারই কল হবে) ---
         try:
-            # অ্যাভারেজ বের করা
-            avg_stats = records.aggregate(
-                Avg('attendance'), Avg('assignment'), Avg('quiz'), 
-                Avg('midterm'), Avg('final'), Avg('gpa')
-            )
-            
-            # ইনপুট ডাটা তৈরি
-            # (নোট: None হ্যান্ডেল করার জন্য 'or 0' ব্যবহার করা হয়েছে)
-            input_data = [[
-                avg_stats['attendance__avg'] or 0,
-                avg_stats['assignment__avg'] or 0,
-                avg_stats['quiz__avg'] or 0,
-                avg_stats['midterm__avg'] or 0,
-                avg_stats['final__avg'] or 0,
-                avg_stats['gpa__avg'] or 0
-            ]]
-            
-            # প্রেডিকশন
-            raw_prediction = model.predict(input_data)[0]
-            
-            if raw_prediction == 1 or raw_prediction == 'Risk' or str(raw_prediction) == '1':
-                prediction = "High Risk"
-            else:
-                prediction = "Safe"
-
-            # রিস্ক প্রবাবিলিটি বের করা
-            if hasattr(model, "predict_proba"):
-                probs = model.predict_proba(input_data)
-                # ক্লাস ১ (রিস্ক) এর প্রবাবিলিটি নেওয়া
-                if len(probs[0]) > 1:
-                    risk_probability = probs[0][1] * 100 
-                    prediction_prob = round(risk_probability, 2)
-            
+            final_prediction = model.predict(input_data)[0] # Output: 'Safe' or 'High Risk'
         except Exception as e:
             print(f"Prediction Error: {e}")
-            prediction = "Error"
+            final_prediction = "Error"
 
+    # Context এ পাঠানো
     context = {
         'student': student,
         'records': records,
-        'prediction': prediction,
-        'prediction_prob': prediction_prob
+        'prediction': final_prediction,  # এখন এটি এভারেজ পারফরম্যান্সের ওপর ভিত্তি করে
+        'total_semesters': total_semesters
     }
     
     return render(request, 'student_profile.html', context)
 
-
 from django.db.models import Avg, Sum, Count, F
 # নিশ্চিত করুন এই ইমপোর্টগুলো উপরে আছে
 # from .models import Student, AcademicRecord, Course, StudentSubjectScore
+
+from django.shortcuts import render
+from .models import Student, AcademicRecord, StudentSubjectScore
+from django.db.models import Avg
+import joblib
+import pandas as pd
+import os
+from django.conf import settings
+import google.generativeai as genai
+
+# আপনার API KEY ইম্পোর্ট করুন অথবা settings এ রাখুন
+# from .config import GOOGLE_API_KEY 
 
 @login_required(login_url='login')
 def reports(request):
@@ -367,166 +497,212 @@ def reports(request):
     max_gpa = request.GET.get('max_gpa')
 
     # ==========================================
-    # ২. ইউনিক স্টুডেন্ট ডাটা প্রসেসিং
+    # ২. মডেল লোড করা (একবার)
     # ==========================================
-    report_data = []  # ফাইনাল লিস্ট যা টেবিলে দেখাবে
+    model_path = os.path.join(settings.BASE_DIR, 'risk_model.pkl')
+    model = None
+    try:
+        model = joblib.load(model_path)
+    except:
+        print("⚠️ risk_model.pkl not found!")
+
+    TOTAL_CLASS_DAYS = 24
     
-    # AI এর জন্য পরিসংখ্যান ভেরিয়েবল
+    # ==========================================
+    # ৩. স্টুডেন্ট ডাটা প্রসেসিং & AI Prediction
+    # ==========================================
+    report_data = []  
+    
+    # পরিসংখ্যান ভেরিয়েবল
     total_gpa_sum = 0
     total_att_sum = 0
     
     all_students = Student.objects.all().order_by('student_id')
 
     for student in all_students:
-        # স্টুডেন্টের সব রেকর্ড থেকে গড় বের করা
-        records = AcademicRecord.objects.filter(student=student)
+        records = AcademicRecord.objects.filter(student=student).order_by('semester')
         
         if records.exists():
+            # --- A. ডিসপ্লের জন্য গড় (Average) বের করা ---
             aggregates = records.aggregate(Avg('gpa'), Avg('attendance'))
-            
-            # ডাটা লোড
             avg_gpa = aggregates['gpa__avg'] or 0
-            avg_att_days = aggregates['attendance__avg'] or 0 # এটি দিনে (Days) আছে
+            avg_att_days = aggregates['attendance__avg'] or 0
             
-            # --- Attendance % Calculation (24 Days Logic) ---
-            # সূত্র: (উপস্থিত দিন / ২৪) * ১০০
-            att_percent = (avg_att_days / 24) * 100
-            if att_percent > 100: att_percent = 100 # ক্যাপ ১০০%
+            # ডিসপ্লের জন্য পার্সেন্টেজ
+            att_percent_display = (avg_att_days / TOTAL_CLASS_DAYS) * 100
+            if att_percent_display > 100: att_percent_display = 100
+
+            # --- B. AI Prediction (Trend Analysis) ---
+            # ম্যানুয়াল লজিক বাদ দিয়ে এখন মডেল ডিসিশন নেবে
             
-            # --- Filtering Logic ---
-            # যদি ইউজার ফিল্টার সেট করে, তবে চেক করা হবে
-            if max_attendance and att_percent > float(max_attendance):
+            is_high_risk = False # ডিফল্ট সেইফ
+            risk_count = 0
+            total_semesters = records.count()
+            last_sem_status = "Safe"
+
+            if model:
+                # প্রতিটি রেকর্ড চেক করা হচ্ছে
+                for record in records:
+                    # ইনপুট তৈরি
+                    r_att = record.attendance if record.attendance else 0
+                    r_pct = (r_att / TOTAL_CLASS_DAYS) * 100
+                    if r_pct > 100: r_pct = 100
+
+                    input_data = pd.DataFrame([{
+                        'Attendance': r_pct,
+                        'Assignment': record.assignment or 0,
+                        'Quiz': record.quiz or 0,
+                        'Midterm': record.midterm or 0,
+                        'Final': record.final or 0,
+                        'Previous_GPA': record.gpa
+                    }])
+                    
+                    try:
+                        pred = model.predict(input_data)[0]
+                        if pred == 'High Risk' or pred == 'Risk':
+                            risk_count += 1
+                            last_sem_status = "High Risk"
+                        else:
+                            last_sem_status = "Safe"
+                    except:
+                        pass
+                
+                # --- Final Verdict Logic ---
+                # ১. শেষ সেমিস্টার খারাপ হলে -> Risk
+                # ২. অথবা মোট সেমিস্টারের ৫০% এর বেশি খারাপ হলে -> Risk
+                if last_sem_status == "High Risk":
+                    is_high_risk = True
+                elif risk_count >= (total_semesters / 2):
+                    is_high_risk = True
+                else:
+                    is_high_risk = False
+            else:
+                # মডেল না থাকলে কেবল ম্যানুয়াল ফলব্যাক (অপশনাল)
+                if avg_gpa < 2.5: is_high_risk = True
+
+            # --- C. Filtering Logic ---
+            # ইউজার ইনপুট ফিল্টার
+            if max_attendance and att_percent_display > float(max_attendance):
                 continue 
             if max_gpa and avg_gpa > float(max_gpa):
                 continue
 
-            # রিস্ক স্ট্যাটাস নির্ধারণ
-            is_high_risk = False
-            if avg_gpa < 2.50 or att_percent < 60:
-                is_high_risk = True
-
-            # রিস্ক ফিল্টার চেক
+            # রিস্ক ফিল্টার (এখন is_high_risk আসছে মডেল থেকে)
             if risk_filter == 'High Risk' and not is_high_risk:
                 continue
             elif risk_filter == 'Low Risk' and is_high_risk:
                 continue 
 
-            # লিস্টে যোগ করা (Unique Entry)
+            # --- D. লিস্টে যোগ করা ---
             report_data.append({
                 'name': student.name,
                 'student_id': student.student_id,
                 'avg_gpa': round(avg_gpa, 2),
-                'att_percent': round(att_percent, 1), # %
-                'att_days': round(avg_att_days, 1),   # Days
-                'is_risk': is_high_risk
+                'att_percent': round(att_percent_display, 1), 
+                'att_days': round(avg_att_days, 1),
+                'is_risk': is_high_risk # মডেলের সিদ্ধান্ত
             })
             
-            # AI ক্যালকুলেশনের জন্য যোগ
             total_gpa_sum += avg_gpa
-            total_att_sum += att_percent
+            total_att_sum += att_percent_display
 
     # ==========================================
-    # ৩. AI Actions / Alerts (সাজানো ডাটার উপর ভিত্তি করে)
+    # ৪. AI Actions / Alerts
     # ==========================================
     ai_actions = []
     
-    # হাই রিস্ক স্টুডেন্ট গণনা (যাদের GPA < 2.5 অথবা Attendance < 60%)
-    high_risk_students = [s for s in report_data if s['avg_gpa'] < 2.5 or s['att_percent'] < 60]
+    # মডেলের রেজাল্ট অনুযায়ী কাউন্ট করা হচ্ছে
+    high_risk_students = [s for s in report_data if s['is_risk'] == True]
     high_risk_count = len(high_risk_students)
     
     if high_risk_count > 0:
         ai_actions.append({
-            'title': 'High Risk Alert',
-            'desc': f'{high_risk_count} students found in critical academic risk.',
+            'title': 'High Risk Alert (AI Detected)',
+            'desc': f'{high_risk_count} students identified as High Risk by the ML Model.',
             'color': 'danger',
             'btn_text': 'View Students',
-            'icon': 'fas fa-exclamation-triangle'
+            'icon': 'fas fa-brain'
         })
     
-    # লো অ্যাটেনডেন্স ওয়ার্নিং (যাদের Attendance < 50%)
+    # অ্যাটেনডেন্স ওয়ার্নিং (ম্যানুয়াল চেক রাখা ভালো)
     low_att_count = len([s for s in report_data if s['att_percent'] < 50])
-    
     if low_att_count > 0:
         ai_actions.append({
             'title': 'Attendance Warning',
-            'desc': f'{low_att_count} students have less than 50% attendance.',
+            'desc': f'{low_att_count} students have critically low attendance (<50%).',
             'color': 'warning',
             'btn_text': 'Send Notice',
             'icon': 'fas fa-clock'
         })
 
     # ==========================================
-    # ৪. গ্রাফের জন্য ডাটা (Course Batch Wise)
+    # ৫. গ্রাফ ডাটা (Subjet Wise)
     # ==========================================
-    # আপনার মডেলে ফিল্ডের নাম: 'title' এবং 'marks'
     course_performance = StudentSubjectScore.objects.values('course__title').annotate(
         avg_marks=Avg('marks') 
     ).order_by('course__title')
 
-    course_labels = []
-    course_data = []
+    course_labels = [item['course__title'] for item in course_performance]
+    course_data = [round(item['avg_marks'], 1) for item in course_performance]
 
-    for item in course_performance:
-        # কোর্সের নাম
-        course_labels.append(item['course__title']) 
-        # গড় নম্বর
-        course_data.append(round(item['avg_marks'], 1))
-
-    # গ্রাফ যাতে ফাঁকা না দেখায়
     if not course_labels:
         course_labels = ['No Data']
         course_data = [0]
 
     # ==========================================
-    # ৫. Gemini AI Text Analysis (Dynamic Generation)
+    # ৬. Gemini Text Summary
     # ==========================================
     ai_response_text = ""
     total_students = len(report_data)
     
     if total_students > 0:
+        # ১. গড় বের করা (Average Calculation)
         class_avg_gpa = round(total_gpa_sum / total_students, 2)
+        class_avg_att = round(total_att_sum / total_students, 1) # এই লাইনটি মিসিং ছিল
         
         try:
-            # API Key কনফিগারেশন
-            genai.configure(api_key=GOOGLE_API_KEY)
+            # ২. জেমিনাই কনফিগারেশন
+            genai.configure(api_key="AIzaSyDJd7w-gqIrXoL6aXUtnfPS5UfVBJdaKaE") # অথবা settings.GOOGLE_API_KEY
             model_gemini = genai.GenerativeModel('gemini-2.5-flash')
             
+            # ৩. প্রম্পট তৈরি
             prompt = f"""
-            Analyze this academic report summary:
-            - Total Unique Students: {total_students}
-            - High Risk Count: {high_risk_count}
-            - Class Average GPA: {class_avg_gpa}
-            - Course Performance Data: {dict(zip(course_labels, course_data))}
+            Act as an Academic Advisor. Analyze this class report:
+            - Total Students: {total_students}
+            - Students at High Risk (ML Prediction): {high_risk_count}
+            - Average Class CGPA: {class_avg_gpa}
+            - Average Attendance: {class_avg_att}%
             
-            Provide 3 bullet points (HTML <li> tags) summarizing the class performance and suggesting improvements for the specific weak courses.
+            Write exactly 3 short, actionable bullet points (using HTML <li> tags) suggesting how to improve the class performance.
             """
             
+            # ৪. রেসপন্স জেনারেট
             response = model_gemini.generate_content(prompt)
             ai_response_text = response.text
             
         except Exception as e:
-            ai_response_text = f"<li>AI Analysis Temporarily Unavailable. ({str(e)})</li>"
+            print(f"Gemini Error: {e}")
+            ai_response_text = "<li>AI Analysis unavailable (Check API Key or Connection).</li>"
+            
     else:
+        # ৫. ডাটা না থাকলে
         ai_response_text = "<li>No student data found matching your filters.</li>"
 
     # ==========================================
-    # ৬. ফাইনাল রেন্ডার
+    # ৭. রেন্ডার
     # ==========================================
     context = {
-        'report_data': report_data,     # ইউনিক স্টুডেন্ট লিস্ট
-        'ai_actions': ai_actions,       # অ্যালার্ট কার্ডের জন্য
-        'course_labels': course_labels, # গ্রাফের লেবেল
-        'course_data': course_data,     # গ্রাফের ডাটা
-        'ai_response_text': ai_response_text, # Gemini's Response
-        
-        # ফিল্টার ভ্যালুগুলো টেমপ্লেটে ফেরত পাঠানো (যাতে ইনপুটে লেখা থাকে)
+        'report_data': report_data,
+        'ai_actions': ai_actions,
+        'course_labels': course_labels,
+        'course_data': course_data,
+        'ai_response_text': ai_response_text,
         'selected_risk': risk_filter,
         'selected_att': max_attendance,
         'selected_gpa': max_gpa
     }
 
     return render(request, 'reports.html', context)
-
 
 # ==========================================
 # 📥 ৬. এক্সপোর্ট ফিচার
@@ -724,40 +900,95 @@ def admin_settings(request):
 # ==========================================
 # 🧠 ৯. AI Dashboard (Optional)
 # ==========================================
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from .models import Student, AcademicRecord
+import joblib
+import pandas as pd
+import os
+from django.conf import settings
 
 @login_required(login_url='login')
 def ai_dashboard(request):
+    
+    # ১. AI মডেল লোড করা (নিরাপদভাবে)
+    model_path = os.path.join(settings.BASE_DIR, 'risk_model.pkl')
+    try:
+        model = joblib.load(model_path)
+        model_loaded = True
+    except:
+        model = None
+        model_loaded = False
+        print("⚠️ Warning: risk_model.pkl not found! Please train the model first.")
+
     students = Student.objects.all()
     student_risks = []
     
     total_students = students.count()
     high_risk_count = 0
+    
+    TOTAL_CLASS_DAYS = 24  # আপনার মোট ক্লাস সংখ্যা
 
     for student in students:
+        # লেটেস্ট রেকর্ড নেওয়া
         last_record = AcademicRecord.objects.filter(student=student).order_by('-semester').first()
         
         if last_record:
-            risk_status = "Safe"
-            if last_record.gpa < 2.50 or last_record.attendance < 60:
-                risk_status = "High Risk"
-                high_risk_count += 1
+            # ২. অ্যাটেনডেন্সকে দিনে (Days) থেকে শতাংশে (%) রূপান্তর করা
+            # সূত্র: (উপস্থিতি / ২৪) * ১০০
+            attendance_days = last_record.attendance
+            att_percentage = (attendance_days / TOTAL_CLASS_DAYS) * 100
             
+            if att_percentage > 100: att_percentage = 100
+
+            # ৩. AI এর জন্য ডাটা সাজানো
+            # (লক্ষ্য রাখুন: কলামের নাম যেন ট্রেনিং ডাটার সাথে হুবহু মিলে)
+            input_data = pd.DataFrame([{
+                'Attendance': att_percentage,
+                'Assignment': getattr(last_record, 'assignment', 0), # ফিল্ড না থাকলে 0
+                'Quiz': getattr(last_record, 'quiz', 0),
+                'Midterm': getattr(last_record, 'midterm', 0),
+                'Final': getattr(last_record, 'final', 0),
+                'Previous_GPA': last_record.gpa 
+            }])
+
+            # ৪. প্রেডিকশন করা
+            risk_status = "Safe" # ডিফল্ট
+            if model_loaded:
+                try:
+                    prediction = model.predict(input_data)[0]
+                    risk_status = prediction # 'High Risk' or 'Safe'
+                except Exception as e:
+                    print(f"Prediction Error for {student.name}: {e}")
+
+            # ৫. রিস্ক কাউন্ট আপডেট করা
+            if risk_status == "High Risk" or risk_status == "Risk":
+                high_risk_count += 1
+                color_class = "danger" # লাল
+            else:
+                color_class = "success" # সবুজ
+            
+            # ৬. লিস্টে ডাটা যোগ করা
             student_risks.append({
                 'id': student.id,
                 'student_id': student.student_id,
                 'name': student.name,
                 'gpa': last_record.gpa,
-                'attendance': last_record.attendance,
-                'risk': risk_status
+                'attendance': f"{attendance_days}/{TOTAL_CLASS_DAYS} ({round(att_percentage)}%)", # সুন্দর করে দেখানো
+                'risk': risk_status,
+                'color': color_class
             })
+
         else:
+            # যদি কোনো রেকর্ড না থাকে
             student_risks.append({
                 'id': student.id,
                 'student_id': student.student_id,
                 'name': student.name,
                 'gpa': 'N/A',
                 'attendance': 'N/A',
-                'risk': 'Unknown'
+                'risk': 'Unknown',
+                'color': 'secondary'
             })
 
     context = {
