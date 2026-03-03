@@ -75,6 +75,11 @@
                         <a href="{% url 'dashboard' %}" class="{% if request.path == '/dashboard/' or request.path == '/' %}active{% endif %}">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
+                        <li class="nav-item">
+    <a href="{% url 'add_data' %}" class="nav-link text-white">
+        <i class="fas fa-plus-circle me-2"></i> Add Data
+    </a>
+</li>
 
                         <a href="{% url 'students' %}" class="{% if 'student' in request.path %}active{% endif %}">
                             <i class="fas fa-users me-2"></i> Students List
@@ -94,6 +99,14 @@
     </a>
 </li>
                     </div>
+
+                   
+
+<li class="nav-item">
+    <a href="{% url 'admin_settings' %}" class="nav-link text-white">
+        <i class="fas fa-cogs me-2"></i> Settings
+    </a>
+</li>
                     
                     <div class="mt-5 px-3">
                         <hr style="background-color: #aea4a480;">

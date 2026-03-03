@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0 rounded-3">
+                
+                <div class="card-header bg-primary text-white pt-4 pb-3">
+                    <h4 class="fw-bold mb-1"><i class="fas fa-database me-2"></i>Data Entry System</h4>
+                    <p class="mb-0 small text-white-50">Manage all academic records, students, and scores here.</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <ul class="nav nav-pills nav-fill mb-4" id="pills-tab" role="tablist">
+                        <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#pills-student" type="button"><i class="fas fa-user-graduate me-1"></i> Student</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#pills-course" type="button"><i class="fas fa-book me-1"></i> Course</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#pills-record" type="button"><i class="fas fa-file-alt me-1"></i> Record</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#pills-score" type="button"><i class="fas fa-star me-1"></i> Score</button></li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="pills-student">
+                            <form method="POST" action="{% url 'add_student' %}">
+                                {% csrf_token %}
+                                {{ student_form.as_p }}
+                                <button type="submit" class="btn btn-primary w-100 mt-2"><i class="fas fa-save"></i> Save Student</button>
+                            </form>
+                        </div>
+
+                        <div class="tab-pane fade" id="pills-course">
+                            <form method="POST" action="{% url 'add_course' %}">
+                                {% csrf_token %}
+                                {{ course_form.as_p }}
+                                <button type="submit" class="btn btn-success w-100 mt-2"><i class="fas fa-save"></i> Save Course</button>
+                            </form>
+                        </div>
+
+                        <div class="tab-pane fade" id="pills-record">
+                            <form method="POST" action="{% url 'add_academic_record' %}">
+                                {% csrf_token %}
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Student</label>
+                                        {{ record_form.student }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Semester</label>
+                                        {{ record_form.semester }}
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Attendance (Out of 24 Classes)</label>
+                                        <input type="number" name="attendance" id="id_attendance" class="form-control" max="24" min="0" placeholder="Enter days present" oninput="calculateStats()">
+                                        <small class="text-muted" id="att_percentage_display">0% Attendance</small>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Assignment (Max 10)</label>
+                                        <input type="number" name="assignment" id="id_assignment" class="form-control" max="10" min="0" step="0.1" placeholder="Marks obtained" oninput="calculateStats()">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tutorial (Max 20)</label>
+                                        <input type="number" name="quiz" id="id_quiz" class="form-control" max="20" min="0" step="0.1" placeholder="Marks obtained" oninput="calculateStats()">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Incourse (Max 40)</label>
+                                        <input type="number" name="midterm" id="id_midterm" class="form-control" max="40" min="0" step="0.1" placeholder="Marks obtained" oninput="calculateStats()">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Final (Max 60)</label>
+                                        <input type="number" name="final" id="id_final" class="form-control" max="60" min="0" step="0.1" placeholder="Marks obtained" oninput="calculateStats()">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label text-primary fw-bold">Semester GPA (Auto)</label>
+                                        <input type="number" name="gpa" id="id_gpa" class="form-control fw-bold text-primary" step="0.01" readonly>
+                                        <small class="text-muted" id="total_marks_display">Total: 0/130 (0%)</small>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100 mt-4 text-white fw-bold"><i class="fas fa-save"></i> Save Record</button>
+                            </form>
+                        </div>
+
+                        <div class="tab-pane fade" id="pills-score">
+                            <form method="POST" action="{% url 'add_subject_score' %}">
+                                {% csrf_token %}
+                                {{ score_form.as_p }}
+                                <button type="submit" class="btn btn-info w-100 mt-2 text-white"><i class="fas fa-save"></i> Save Score</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        padding: 10px 15px;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #6f42c1;
+        box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+    }
+    label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        color: #555;
+    }
+</style>
+
+<script>
+    function calculateStats() {
+        // 1. Attendance Calculation (24 Classes)
+        let attendanceDays = parseFloat(document.getElementById('id_attendance').value) || 0;
+        let maxClasses = 24;
+        
+        // Cap attendance at 24
+        if(attendanceDays > maxClasses) {
+            attendanceDays = maxClasses;
+            document.getElementById('id_attendance').value = maxClasses;
+        }
+
+        let attPercentage = (attendanceDays / maxClasses) * 100;
+        document.getElementById('att_percentage_display').innerText = attPercentage.toFixed(1) + "% Attendance";
+
+        // 2. Marks Calculation
+        // Inputs
+        let assignment = parseFloat(document.getElementById('id_assignment').value) || 0; // Max 10
+        let tutorial = parseFloat(document.getElementById('id_quiz').value) || 0;       // Max 20
+        let incourse = parseFloat(document.getElementById('id_midterm').value) || 0;    // Max 40
+        let final = parseFloat(document.getElementById('id_final').value) || 0;         // Max 60
+
+        // Validation (Cap values)
+        if(assignment > 10) document.getElementById('id_assignment').value = 10;
+        if(tutorial > 20) document.getElementById('id_quiz').value = 20;
+        if(incourse > 40) document.getElementById('id_midterm').value = 40;
+        if(final > 60) document.getElementById('id_final').value = 60;
+
+        // Total Obtained
+        let totalObtained = assignment + tutorial + incourse + final;
+        let maxMarks = 10 + 20 + 40 + 60; // 130 Total Marks
+
+        // Convert to 100% Scale
+        let finalPercentage = (totalObtained / maxMarks) * 100;
+
+        // Display Total Stats
+        document.getElementById('total_marks_display').innerText = 
+            `Total: ${totalObtained}/${maxMarks} (${finalPercentage.toFixed(1)}%)`;
+
+        // 3. GPA Calculation (Standard 4.0 Scale)
+        let gpa = 0.00;
+
+        if (finalPercentage >= 80) gpa = 4.00;
+        else if (finalPercentage >= 75) gpa = 3.75;
+        else if (finalPercentage >= 70) gpa = 3.50;
+        else if (finalPercentage >= 65) gpa = 3.25;
+        else if (finalPercentage >= 60) gpa = 3.00;
+        else if (finalPercentage >= 55) gpa = 2.75;
+        else if (finalPercentage >= 50) gpa = 2.50;
+        else if (finalPercentage >= 45) gpa = 2.25;
+        else if (finalPercentage >= 40) gpa = 2.00;
+        else gpa = 0.00;
+
+        // Update GPA Field
+        document.getElementById('id_gpa').value = gpa.toFixed(2);
+    }
+</script>
+
+{% endblock %}

@@ -7,190 +7,223 @@
     .btn-export-pdf:hover { background-color: #c82333; color: white; box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3); }
     .btn-export-excel { background-color: #198754; color: white; transition: 0.3s; }
     .btn-export-excel:hover { background-color: #157347; color: white; box-shadow: 0 4px 10px rgba(25, 135, 84, 0.3); }
-    .filter-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
     .ai-action-item { border-left: 4px solid #6f42c1; background-color: #f8f9fa; transition: 0.3s; }
     .ai-action-item:hover { transform: translateX(5px); background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    
+    /* Table Scrollbar Customization */
+    .table-responsive::-webkit-scrollbar { width: 6px; }
+    .table-responsive::-webkit-scrollbar-thumb { background-color: #c1c1c1; border-radius: 10px; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold text-dark" style="font-family: 'Segoe UI', Tahoma, sans-serif;">
-            <i class="fas fa-chart-pie text-primary me-2"></i> Advanced Reports & Analytics
-        </h2>
-        <p class="text-secondary mb-0">Deep dive into academic performance and AI-driven insights.</p>
-    </div>
-    
-    <div>
-        <a href="{% url 'export_excel' %}" class="btn btn-export-excel me-2 rounded-pill px-4 fw-bold text-decoration-none">
-            <i class="fas fa-file-excel me-2"></i> Export Excel
-        </a>
-        <a href="{% url 'export_pdf' %}" class="btn btn-export-pdf rounded-pill px-4 fw-bold text-decoration-none">
-            <i class="fas fa-file-pdf me-2"></i> Export PDF
-        </a>
-    </div>
-</div>
-
-<form method="GET" action="{% url 'reports' %}">
-    <div class="card glass-card p-4 mb-4">
-        <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-filter text-primary me-2"></i>Custom Data Filter</h5>
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label small fw-bold text-muted">Risk Category</label>
-                <select name="risk_level" class="form-select">
-                    <option value="">All Risk Levels</option>
-                    <option value="High Risk" {% if selected_risk == 'High Risk' %}selected{% endif %}>High Risk</option>
-                    <option value="Low Risk" {% if selected_risk == 'Low Risk' %}selected{% endif %}>Top Performers</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted">Attendance Limit</label>
-                <input type="number" name="max_attendance" class="form-control" placeholder="Max Attendance %" value="{{ selected_attendance }}">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-bold text-muted">GPA Limit</label>
-                <input type="number" step="0.01" name="max_gpa" class="form-control" placeholder="Max GPA" value="{{ selected_gpa }}">
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
-                    <i class="fas fa-search me-2"></i> Filter
-                </button>
-            </div>
-        </div>
-    </div>
-</form>
-
-<div class="row">
-    
-    <div class="col-lg-7">
-       <div class="card shadow-sm mb-4">
-            <div class="card-header py-3 bg-white">
-                <h6 class="m-0 font-weight-bold text-primary">Filtered Students List ({{ records.count }})</h6>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive" style="max_height: 500px; overflow-y: auto;">
-                    <table class="table table-bordered table-hover">
-                        <thead class="bg-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>GPA</th>
-                                <th>Attendance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in records %}
-                            <tr>
-                                <td class="fw-bold text-dark">{{ record.student.name }}</td>
-                                <td class="{% if record.gpa < 2.0 %}text-danger fw-bold{% else %}text-success{% endif %}">
-                                    {{ record.gpa }}
-                                </td>
-                                <td class="{% if record.attendance < 60 %}text-danger fw-bold{% else %}text-dark{% endif %}">
-                                    {{ record.attendance }}%
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="3" class="text-center text-muted py-4">No data matches your filter.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark" style="font-family: 'Segoe UI', Tahoma, sans-serif;">
+                <i class="fas fa-chart-pie text-primary me-2"></i> Advanced Reports & Analytics
+            </h2>
+            <p class="text-secondary mb-0">Deep dive into academic performance and AI-driven insights.</p>
         </div>
         
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                 <h6 class="fw-bold text-muted mb-3">Section Comparison</h6>
-                 <canvas id="comparisonChart" style="height: 250px;"></canvas>
-            </div>
+        <div>
+            <a href="{% url 'export_excel' %}" class="btn btn-export-excel me-2 rounded-pill px-4 fw-bold text-decoration-none">
+                <i class="fas fa-file-excel me-2"></i> Export Excel
+            </a>
+            <a href="{% url 'export_pdf' %}" class="btn btn-export-pdf rounded-pill px-4 fw-bold text-decoration-none">
+                <i class="fas fa-file-pdf me-2"></i> Export PDF
+            </a>
         </div>
     </div>
 
-    <div class="col-lg-5">
-        
-        <div class="card shadow-lg border-0 mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-brain fa-2x me-3"></i>
-                    <div>
-                        <h5 class="fw-bold mb-0">Gemini AI Analysis</h5>
-                        <small class="text-white-50">Live insights generated by Google AI</small>
-                    </div>
+    <form method="GET" action="{% url 'reports' %}">
+        <div class="card glass-card p-4 mb-4">
+            <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-filter text-primary me-2"></i>Custom Data Filter</h5>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-muted">Risk Category</label>
+                    <select name="risk_level" class="form-select">
+                        <option value="">All Risk Levels</option>
+                        <option value="High Risk" {% if selected_risk == 'High Risk' %}selected{% endif %}>High Risk</option>
+                        <option value="Low Risk" {% if selected_risk == 'Low Risk' %}selected{% endif %}>Top Performers</option>
+                    </select>
                 </div>
-                
-                <hr class="bg-white opacity-25">
-
-                <div class="mt-3">
-                    <ul class="list-unstyled mb-0" style="font-size: 1.05rem; line-height: 1.6;">
-                        {{ ai_response_text|safe }}
-                    </ul>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Attendance Limit</label>
+                    <input type="number" name="max_attendance" class="form-control" placeholder="Max Attendance %" value="{{ selected_attendance }}">
                 </div>
-
-                <div class="mt-4 text-center">
-                    <button class="btn btn-light btn-sm rounded-pill px-4 text-primary fw-bold" onclick="window.location.reload();">
-                        <i class="fas fa-sync-alt me-2"></i> Refresh Analysis
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">GPA Limit</label>
+                    <input type="number" step="0.01" name="max_gpa" class="form-control" placeholder="Max GPA" value="{{ selected_gpa }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                        <i class="fas fa-search me-2"></i> Filter
                     </button>
                 </div>
             </div>
         </div>
+    </form>
 
-        <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-tasks text-info me-2"></i>Recommended Actions</h5>
+    <div class="row">
         
-        {% for action in ai_actions %}
-        <div class="card shadow-sm mb-3 ai-action-item" style="border-left: 5px solid 
-            {% if action.color == 'danger' %}#e74a3b
-            {% elif action.color == 'warning' %}#f6c23e
-            {% elif action.color == 'success' %}#1cc88a
-            {% else %}#36b9cc{% endif %};">
-            
-            <div class="card-body">
-                <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-{{ action.color }} text-uppercase mb-1">
-                            {{ action.title }}
-                        </div>
-                        <div class="h6 mb-2 font-weight-bold text-gray-800">
-                            {{ action.desc }}
-                        </div>
-                        <button class="btn btn-sm btn-outline-{{ action.color }} rounded-pill px-3">
-                            {{ action.btn_text }}
-                        </button>
-                    </div>
-                    <div class="col-auto">
-                        <i class="{{ action.icon }} fa-2x text-gray-300 opacity-50"></i>
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3 bg-white">
+                    <h6 class="m-0 font-weight-bold text-primary">Filtered Students List ({{ records.count }})</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover">
+                            <thead class="bg-light sticky-top" style="top: 0; z-index: 1;">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>GPA</th>
+                                    <th>Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    {% for student in report_data %}
+    <tr>
+        <td class="fw-bold">{{ student.name }} <br> <small class="text-muted">{{ student.student_id }}</small></td>
+        <td class="text-primary fw-bold">{{ student.avg_gpa }}</td>
+        <td>
+            <div class="d-flex align-items-center">
+                <span class="me-2">{{ student.att_percent }}%</span>
+                <div class="progress flex-grow-1" style="height: 6px; width: 100px;">
+                    <div class="progress-bar {% if student.att_percent < 60 %}bg-danger{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ student.att_percent }}%">
                     </div>
                 </div>
             </div>
+            <small class="text-muted" style="font-size: 0.8em;">(Avg: {{ student.att_days }}/24 Days)</small>
+        </td>
+        <td>
+            {% if student.is_risk %}
+                <span class="badge bg-danger-subtle text-danger px-3">High Risk</span>
+            {% else %}
+                <span class="badge bg-success-subtle text-success px-3">Safe</span>
+            {% endif %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="4" class="text-center py-4">No students found.</td>
+    </tr>
+    {% endfor %}
+</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+           <div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Course-wise Performance Comparison</h5>
+        <canvas id="comparisonChart" style="max-height: 400px;"></canvas>
+    </div>
+</div>
         </div>
-        {% empty %}
-        {% endfor %}
 
-    <!-- </div> </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
-<!-- <script>
-    // Chart Logic
-    const ctx = document.getElementById('comparisonChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Maths', 'Science', 'English', 'History', 'Physics'],
-            datasets: [
-                {
-                    label: 'Class Avg',
-                    data: [85, 78, 88, 70, 82],
-                    backgroundColor: 'rgba(78, 115, 223, 0.8)',
-                    borderRadius: 4
+        <div class="col-lg-5">
+            
+            <div class="card shadow-lg border-0 mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-brain fa-2x me-3"></i>
+                        <div>
+                            <h5 class="fw-bold mb-0">Gemini AI Analysis</h5>
+                            <small class="text-white-50">Live insights generated by Google AI</small>
+                        </div>
+                    </div>
+                    
+                    <hr class="bg-white opacity-25">
+
+                    <div class="mt-3">
+                        <ul class="list-unstyled mb-0" style="font-size: 1.05rem; line-height: 1.6;">
+                            {{ ai_response_text|safe }}
+                        </ul>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <button class="btn btn-light btn-sm rounded-pill px-4 text-primary fw-bold" onclick="window.location.reload();">
+                            <i class="fas fa-sync-alt me-2"></i> Refresh Analysis
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-tasks text-info me-2"></i>Recommended Actions</h5>
+            
+            <div style="max-height: 600px; overflow-y: auto;">
+                {% for action in ai_actions %}
+                <div class="card shadow-sm mb-3 ai-action-item" style="border-left: 5px solid 
+                    {% if action.color == 'danger' %}#e74a3b
+                    {% elif action.color == 'warning' %}#f6c23e
+                    {% elif action.color == 'success' %}#1cc88a
+                    {% else %}#36b9cc{% endif %};">
+                    
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-{{ action.color }} text-uppercase mb-1">
+                                    {{ action.title }}
+                                </div>
+                                <div class="h6 mb-2 font-weight-bold text-gray-800">
+                                    {{ action.desc }}
+                                </div>
+                                <button class="btn btn-sm btn-outline-{{ action.color }} rounded-pill px-3 mt-2">
+                                    {{ action.btn_text }}
+                                </button>
+                            </div>
+                            <div class="col-auto">
+                                <i class="{{ action.icon }} fa-2x text-gray-300 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-muted py-3">No actions recommended at this moment.</div>
+                {% endfor %}
+            </div>
+
+        </div> </div> </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        
+        // Django থেকে ডাটা রিসিভ করা হচ্ছে
+        const courseLabels = {{ course_labels|safe }};
+        const courseData = {{ course_data|safe }};
+
+        new Chart(ctx, {
+            type: 'bar', // আপনি চাইলে 'line' বা 'pie' দিতে পারেন
+            data: {
+                labels: courseLabels,
+                datasets: [{
+                    label: 'Average Course Marks',
+                    data: courseData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: { display: true, text: 'Avg Marks' }
+                    }
                 },
-                {
-                    label: 'Current Filter Avg',
-                    data: [65, 60, 85, 68, 70],
-                    backgroundColor: 'rgba(28, 200, 138, 0.8)',
-                    borderRadius: 4
+                plugins: {
+                    legend: { display: false }
                 }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } },
-            scales: { y: { beginAtZero: true, max: 100 } }
-        }
+            }
+        });
     });
-</script> -->
+</script>
 {% endblock %}

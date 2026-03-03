@@ -13,43 +13,28 @@
     .glass-card:hover { transform: translateY(-3px); }
     
     .avatar-large { 
-        width: 70px; 
-        height: 70px; 
-        background-color: #f8f9fa; 
-        border-radius: 50%; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        font-size: 28px; 
-        font-weight: bold; 
-        color: #4e73df; 
+        width: 70px; height: 70px; 
+        background-color: #f8f9fa; border-radius: 50%; 
+        display: flex; justify-content: center; align-items: center; 
+        font-size: 28px; font-weight: bold; color: #4e73df; 
         border: 2px solid #e3e6f0;
     }
 
     .chart-card { 
-        height: 260px; 
-        padding: 15px; 
-        border-radius: 12px; 
-        border: 1px solid #f0f0f0; 
-        background: #fff; 
-        margin-bottom: 20px; 
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
+        height: 260px; padding: 15px; border-radius: 12px; 
+        border: 1px solid #f0f0f0; background: #fff; 
+        margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); 
     }
     .chart-title { 
-        font-size: 13px; 
-        font-weight: 700; 
-        color: #858796; 
-        text-transform: uppercase; 
-        margin-bottom: 15px; 
-        display: block; 
-        text-align: center;
-        letter-spacing: 1px;
+        font-size: 13px; font-weight: 700; color: #858796; 
+        text-transform: uppercase; margin-bottom: 15px; 
+        display: block; text-align: center; letter-spacing: 1px;
     }
 </style>
 
-<div class="container-fluid">
+<div class="container-fluid py-4">
     
-    <div class="card glass-card p-4 mb-4 border-left-primary">
+    <div class="card glass-card p-4 mb-4 border-start border-4 border-primary">
         <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
                 <div class="avatar-large me-4 shadow-sm">
@@ -61,8 +46,8 @@
                 </div>
             </div>
             <div class="text-end">
-                <span class="text-xs font-weight-bold text-uppercase text-muted mb-1">Total Semesters</span>
-                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ records.count }}</div>
+                <span class="small fw-bold text-uppercase text-muted mb-1">Total Semesters</span>
+                <div class="h3 mb-0 fw-bold text-dark">{{ records.count }}</div>
             </div>
         </div>
     </div>
@@ -82,45 +67,42 @@
         </div>
         <div class="col-md-4">
             <div class="chart-card">
-                <span class="chart-title"><i class="fas fa-pen-alt text-warning me-1"></i> Quiz Marks</span>
+                <span class="chart-title"><i class="fas fa-pen-alt text-warning me-1"></i> Tutorial (20)</span>
                 <div style="height: 200px;"><canvas id="chartQuiz"></canvas></div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="chart-card">
-                <span class="chart-title"><i class="fas fa-book text-info me-1"></i> Assignment</span>
+                <span class="chart-title"><i class="fas fa-book text-info me-1"></i> Assignment (10)</span>
                 <div style="height: 200px;"><canvas id="chartAssignment"></canvas></div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="chart-card">
-                <span class="chart-title"><i class="fas fa-file-alt text-secondary me-1"></i> Midterm</span>
+                <span class="chart-title"><i class="fas fa-file-alt text-secondary me-1"></i> Incourse (40)</span>
                 <div style="height: 200px;"><canvas id="chartMidterm"></canvas></div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="chart-card">
-                <span class="chart-title"><i class="fas fa-flag-checkered text-danger me-1"></i> Final Exam</span>
+                <span class="chart-title"><i class="fas fa-flag-checkered text-danger me-1"></i> Final Exam (60)</span>
                 <div style="height: 200px;"><canvas id="chartFinal"></canvas></div>
             </div>
         </div>
     </div>
 
-    <div class="card glass-card p-4 mb-4 border-bottom-info">
+    <div class="card glass-card p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap">
             <div>
-                <h4 class="fw-bold text-gray-800"><i class="fas fa-robot text-info me-2"></i>AI Risk Predictor</h4>
-                <p class="text-muted mb-0 small">Based on overall academic history analysis</p>
+                <h4 class="fw-bold text-dark"><i class="fas fa-robot text-info me-2"></i>AI Risk Predictor</h4>
+                <p class="text-muted mb-0 small">Based on average performance across all semesters.</p>
             </div>
 
             {% if not prediction %}
             <form method="POST">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-info btn-icon-split shadow-sm">
-                    <span class="icon text-white-50">
-                        <i class="fas fa-search-chart"></i>
-                    </span>
-                    <span class="text">Analyze Risk Now</span>
+                <button type="submit" class="btn btn-info shadow-sm fw-bold text-white">
+                    <i class="fas fa-search-chart me-2"></i> Analyze Risk Now
                 </button>
             </form>
             {% endif %}
@@ -128,60 +110,71 @@
 
         {% if prediction %}
         <hr class="my-3">
-        <div class="alert {% if prediction == 'High Risk' %}alert-danger{% else %}alert-success{% endif %} d-flex align-items-center shadow-sm" role="alert">
-            {% if prediction == 'High Risk' %}
-                <div class="me-3">
-                    <i class="fas fa-exclamation-circle fa-3x text-danger"></i>
+        <div class="alert {% if prediction == 'High Risk' %}alert-danger{% else %}alert-success{% endif %} shadow-sm mb-0" role="alert">
+            <div class="d-flex align-items-center">
+                {% if prediction == 'High Risk' %}
+                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                {% else %}
+                    <i class="fas fa-check-circle fa-2x me-3"></i>
+                {% endif %}
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading fw-bold mb-1">
+                        {% if prediction == 'High Risk' %}High Dropout Risk Detected!{% else %}Student is Safe{% endif %}
+                    </h5>
+                    <p class="mb-0 small">
+                        {% if prediction == 'High Risk' %}
+                            Student shows signs of academic struggle based on historical data.
+                        {% else %}
+                            Performance is stable and consistent.
+                        {% endif %}
+                    </p>
                 </div>
-                <div>
-                    <h5 class="alert-heading fw-bold">High Dropout Risk Detected!</h5>
-                    <p class="mb-0">GPA/Attendance is critically low. Immediate counseling recommended.</p>
+                {% if prediction_prob > 0 %}
+                <div class="text-end ms-3">
+                    <span class="d-block text-uppercase small fw-bold opacity-75">Risk Probability</span>
+                    <span class="display-6 fw-bold">{{ prediction_prob }}%</span>
                 </div>
-            {% else %}
-                <div class="me-3">
-                    <i class="fas fa-check-circle fa-3x text-success"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading fw-bold">Student is Safe</h5>
-                    <p class="mb-0">Academic performance is stable. No immediate action required.</p>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
         {% endif %}
     </div>
 
     <div class="card glass-card mb-4">
-        <div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between">
-            <h6 class="m-0 font-weight-bold text-primary">Academic History Log</h6>
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 fw-bold text-primary">Academic History Log</h6>
         </div>
         <div class="table-responsive p-3">
-            <table class="table table-bordered table-hover align-middle text-center" width="100%" cellspacing="0">
-                <thead class="bg-light">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="bg-light text-secondary">
                     <tr>
                         <th>Semester</th>
                         <th>GPA</th>
-                        <th>Attendance</th>
-                        <th>Quiz</th>
-                        <th>Assignment</th>
-                        <th>Midterm</th>
-                        <th>Final</th>
+                        <th>Attendance (Days)</th>
+                        <th>Tutorial (20)</th>
+                        <th>Assign (10)</th>
+                        <th>Incourse (40)</th>
+                        <th>Final (60)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for record in records %}
-                    <tr>
+                    <tr class="academic-row" data-attendance-days="{{ record.attendance|default:0 }}">
                         <td class="fw-bold text-primary">{{ record.semester }}</td>
                         <td><span class="badge {% if record.gpa < 2.5 %}bg-danger{% else %}bg-success{% endif %}">{{ record.gpa }}</span></td>
-                        <td>
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar {% if record.attendance < 60 %}bg-danger{% else %}bg-info{% endif %}" 
-                                     role="progressbar" 
-                                     style="width: {{ record.attendance }}%;" 
-                                     aria-valuenow="{{ record.attendance }}" aria-valuemin="0" aria-valuemax="100">
-                                    {{ record.attendance }}%
+                        
+                        <td style="min-width: 150px;">
+                            <div class="d-flex flex-column justify-content-center">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="attendance-percent fw-bold small">0%</span>
+                                    <span class="attendance-days text-muted small" style="font-size: 10px;">{{ record.attendance }} Days</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar attendance-bar bg-info" role="progressbar" style="width: 0%"></div>
                                 </div>
                             </div>
                         </td>
+
                         <td>{{ record.quiz|default:"-" }}</td>
                         <td>{{ record.assignment|default:"-" }}</td>
                         <td>{{ record.midterm|default:"-" }}</td>
@@ -199,23 +192,63 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // নিরাপদভাবে জ্যাঙ্গো থেকে জাভাস্ক্রিপ্ট অ্যারে তৈরি করা হচ্ছে
-    const labels = [{% for r in records %}"{{ r.semester }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+    // ==========================================
+    // কনফিগারেশন: মোট ক্লাস সংখ্যা এখানে সেট করুন
+    // ==========================================
+    const TOTAL_CLASSES = 24; // ধরে নিচ্ছি মোট ক্লাস ৬০টি। প্রয়োজন হলে পরিবর্তন করুন।
 
-    // ডাটা সেট তৈরি (GPA)
+    // --- ১. ডাটা প্রিপারেশন ---
+    const labels = [{% for r in records %}"{{ r.semester }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
     const gpaData = [{% for r in records %}{{ r.gpa|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     
-    // ডাটা সেট তৈরি (Attendance)
-    const attData = [{% for r in records %}{{ r.attendance|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    // Attendance Data (Raw Days from Database)
+    const rawAttDays = [{% for r in records %}{{ r.attendance|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    
+    // Attendance Data কে Percentage এ কনভার্ট করা (চার্টের জন্য)
+    const attPercentageData = rawAttDays.map(days => {
+        let percent = (days / TOTAL_CLASSES) * 100;
+        return percent > 100 ? 100 : percent.toFixed(1); // ১০০ এর বেশি হলে ১০০ রাখবে
+    });
 
-    // অন্যান্য মার্কস
+    // Marks Data
     const quizData = [{% for r in records %}{{ r.quiz|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const assData = [{% for r in records %}{{ r.assignment|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const midData = [{% for r in records %}{{ r.midterm|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const finalData = [{% for r in records %}{{ r.final|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
 
-    // চার্ট জেনারেটর ফাংশন
-    function createChart(ctxId, label, data, color, bgColor, isGPA=false) {
+    // --- ২. টেবিল আপডেট ফাংশন (Table Calculation) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('.academic-row');
+        
+        rows.forEach(row => {
+            const days = parseFloat(row.getAttribute('data-attendance-days'));
+            let percent = (days / TOTAL_CLASSES) * 100;
+            
+            // Limit to 100%
+            if(percent > 100) percent = 100;
+            
+            // Update Text
+            const percentText = row.querySelector('.attendance-percent');
+            const progressBar = row.querySelector('.attendance-bar');
+            
+            if(percentText && progressBar) {
+                percentText.innerText = percent.toFixed(0) + "%";
+                progressBar.style.width = percent + "%";
+                
+                // Color Change based on percentage
+                if(percent < 60) {
+                    progressBar.className = 'progress-bar attendance-bar bg-danger';
+                } else if (percent < 80) {
+                    progressBar.className = 'progress-bar attendance-bar bg-warning';
+                } else {
+                    progressBar.className = 'progress-bar attendance-bar bg-success';
+                }
+            }
+        });
+    });
+
+    // --- ৩. চার্ট ফাংশন ---
+    function createChart(ctxId, label, data, color, bgColor, maxScale) {
         const ctx = document.getElementById(ctxId);
         if(ctx) {
             new Chart(ctx.getContext('2d'), {
@@ -228,8 +261,8 @@
                         borderColor: color,
                         backgroundColor: bgColor,
                         borderWidth: 2,
-                        pointRadius: 3,
-                        pointHoverRadius: 5,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                         tension: 0.3,
                         fill: true
                     }]
@@ -240,9 +273,8 @@
                     plugins: { legend: { display: false } },
                     scales: {
                         y: {
-                            beginAtZero: isGPA ? false : true,
-                            suggestedMin: isGPA ? 2.0 : 0,
-                            suggestedMax: isGPA ? 4.0 : 100,
+                            beginAtZero: true,
+                            max: maxScale,
                             grid: { borderDash: [2, 2], drawBorder: false }
                         },
                         x: { grid: { display: false } }
@@ -252,13 +284,16 @@
         }
     }
 
-    // চার্ট রেন্ডারিং
-    createChart('chartGPA', 'GPA', gpaData, '#4e73df', 'rgba(78, 115, 223, 0.05)', true);
-    createChart('chartAttendance', 'Attendance', attData, '#1cc88a', 'rgba(28, 200, 138, 0.05)');
-    createChart('chartQuiz', 'Quiz', quizData, '#f6c23e', 'rgba(246, 194, 62, 0.05)');
-    createChart('chartAssignment', 'Assignment', assData, '#36b9cc', 'rgba(54, 185, 204, 0.05)');
-    createChart('chartMidterm', 'Midterm', midData, '#858796', 'rgba(133, 135, 150, 0.05)');
-    createChart('chartFinal', 'Final', finalData, '#e74a3b', 'rgba(231, 74, 59, 0.05)');
+    // --- Render Charts ---
+    createChart('chartGPA', 'GPA', gpaData, '#4e73df', 'rgba(78, 115, 223, 0.1)', 4.0);
+    
+    // এখানে attPercentageData ব্যবহার করা হয়েছে (Days নয়, Percentage দেখাবে)
+    createChart('chartAttendance', 'Attendance (%)', attPercentageData, '#1cc88a', 'rgba(28, 200, 138, 0.1)', 100);
+    
+    createChart('chartQuiz', 'Tutorial', quizData, '#f6c23e', 'rgba(246, 194, 62, 0.1)', 20);
+    createChart('chartAssignment', 'Assignment', assData, '#36b9cc', 'rgba(54, 185, 204, 0.1)', 10);
+    createChart('chartMidterm', 'Incourse', midData, '#858796', 'rgba(133, 135, 150, 0.1)', 40);
+    createChart('chartFinal', 'Final', finalData, '#e74a3b', 'rgba(231, 74, 59, 0.1)', 60);
 
 </script>
 
