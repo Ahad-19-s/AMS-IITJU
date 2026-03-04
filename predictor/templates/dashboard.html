@@ -2,7 +2,7 @@
 
 {% block content %}
 <style>
-    /* Custom Styling for Dashboard */
+    
     .premium-card { 
         border-radius: 12px; 
         border: none; 
@@ -18,9 +18,6 @@
         height: 6px; 
         border-radius: 5px; 
     }
-    .table-hover tbody tr:hover { 
-        background-color: #f8f9fc; 
-    }
     .status-badge { 
         padding: 6px 12px; 
         border-radius: 20px; 
@@ -28,7 +25,7 @@
         font-weight: 700; 
         letter-spacing: 0.5px;
     }
-    /* Scrollbar for subject list */
+    
     #subjectContainer::-webkit-scrollbar {
         width: 6px;
     }
@@ -157,75 +154,22 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8 mb-4">
-            <div class="card premium-card p-4 h-100">
-                <h6 class="fw-bold text-dark mb-3">Recent Student Evaluations (AI Verified)</h6>
-                
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                        <thead class="bg-light text-secondary" style="font-size: 13px;">
-                            <tr>
-                                <th>Name</th>
-                                <th>Attendance Progress</th>
-                                <th>AI Risk Status</th>
-                                <th>CGPA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in recent_records %}
-                            <tr>
-                                <td class="fw-bold text-dark">{{ record.student.name }}</td>
-                                
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="progress flex-grow-1 me-2" style="height: 6px; width: 100px; background-color: #e9ecef;">
-                                            <div class="progress-bar {% if record.att_percent < 50 %}bg-danger{% elif record.att_percent < 75 %}bg-warning{% else %}bg-info{% endif %}" 
-                                                 role="progressbar" 
-                                                 style="width: {{ record.att_percent }}%">
-                                            </div>
-                                        </div>
-                                        <small class="text-muted fw-bold">{{ record.att_percent }}%</small>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    {% if record.ai_status == 'High Risk' %}
-                                        <span class="badge bg-danger bg-opacity-10 text-danger status-badge">
-                                            <i class="fas fa-exclamation-circle me-1"></i> High Risk
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-success bg-opacity-10 text-success status-badge">
-                                            <i class="fas fa-check-circle me-1"></i> Safe
-                                        </span>
-                                    {% endif %}
-                                </td>
-
-                                <td class="fw-bold text-dark">{{ record.gpa }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">No recent records found.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 mb-4">
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card premium-card p-4 h-100">
                 <h6 class="fw-bold text-dark mb-3">Overall Risk Distribution</h6>
-                <div style="height: 250px; position: relative;">
+                
+                <div style="height: 300px; position: relative; width: 100%;">
                     <canvas id="riskDonut"></canvas>
                 </div>
+                
                 <div class="text-center mt-3">
                     <small class="text-muted">Analysis based on total registered students</small>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -233,12 +177,10 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         
-        // --- ১. ডাটা লোড (Handling JSON Parsing Errors) ---
+       
         const semLabels = JSON.parse('{{ sem_labels|default:"[]"|safe }}');
         const semGpa = JSON.parse('{{ sem_gpa|default:"[]"|safe }}');
         const riskData = JSON.parse('{{ risk_data|default:"[0,0]"|safe }}');
-        
-        // Performance Data (যদি না থাকে তবে খালি অবজেক্ট)
         const performanceData = JSON.parse('{{ semester_performance|default:"{}"|safe }}');
 
         // ==========================================
@@ -256,7 +198,7 @@
                         borderColor: '#4e73df',
                         backgroundColor: 'rgba(78, 115, 223, 0.05)',
                         borderWidth: 2,
-                        tension: 0.4, // Smooth curve
+                        tension: 0.4,
                         fill: true,
                         pointBackgroundColor: '#fff',
                         pointBorderColor: '#4e73df',
@@ -286,7 +228,7 @@
         }
 
         // ==========================================
-        // ৩. Risk Chart (Donut)
+        // ৩. Risk Chart (Donut) - Full Width Adjusted
         // ==========================================
         const ctxRisk = document.getElementById('riskDonut');
         if (ctxRisk) {
@@ -304,12 +246,20 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '75%',
+                    maintainAspectRatio: false, // এটি ফুল উইডথ কন্টেইনারে ফিট করতে সাহায্য করবে
+                    cutout: '70%',
                     plugins: {
                         legend: { 
                             position: 'bottom',
                             labels: { usePointStyle: true, padding: 20 } 
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0
                         }
                     }
                 }
@@ -317,23 +267,20 @@
         }
 
         // ==========================================
-        // ৪. Subject Grades Logic (Dynamic Rendering)
+        // ৪. Subject Grades Logic
         // ==========================================
         const semesterSelect = document.getElementById('semesterSelect');
         const subjectContainer = document.getElementById('subjectContainer');
 
         function updateSubjectGrades(semester) {
-            subjectContainer.innerHTML = ''; // আগের কন্টেন্ট ক্লিয়ার
+            subjectContainer.innerHTML = ''; 
             
             const data = performanceData[semester];
 
             if (data && data.length > 0) {
-                // ডাটা থাকলে লুপ চালানো
                 data.forEach(item => {
-                    // নম্বর থেকে পার্সেন্টেজ বের করা
                     let percent = (item.score / item.total) * 100;
                     
-                    // কালার কোড সেট করা
                     let colorClass = 'bg-primary';
                     if(percent < 40) colorClass = 'bg-danger';      
                     else if(percent < 60) colorClass = 'bg-warning';
@@ -355,7 +302,6 @@
                     subjectContainer.innerHTML += html;
                 });
             } else {
-                // ডাটা না থাকলে মেসেজ
                 subjectContainer.innerHTML = `
                     <div class="d-flex flex-column align-items-center justify-content-center h-100">
                         <i class="fas fa-folder-open fa-3x mb-3" style="color: #e3e6f0;"></i>
@@ -364,15 +310,14 @@
             }
         }
 
-        // ইভেন্ট লিসেনার যোগ করা
         semesterSelect.addEventListener('change', function() {
             updateSubjectGrades(this.value);
         });
 
-        // ডিফল্ট লোড (প্রথম অপশন দিয়ে)
         if (semesterSelect.value) {
             updateSubjectGrades(semesterSelect.value);
         }
     });
 </script>
 {% endblock %}
+

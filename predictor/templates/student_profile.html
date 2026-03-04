@@ -93,12 +93,12 @@
     </div>
 
     <div class="row">
-        <div class="col-md-4">
+        <!-- <div class="col-md-4">
             <div class="chart-card">
                 <span class="chart-title"><i class="fas fa-graduation-cap text-primary me-1"></i> CGPA Trend</span>
                 <div style="height: 200px;"><canvas id="chartGPA"></canvas></div>
             </div>
-        </div>
+        </div> -->
         <div class="col-md-4">
             <div class="chart-card">
                 <span class="chart-title"><i class="fas fa-user-clock text-success me-1"></i> Attendance (%)</span>
@@ -117,16 +117,22 @@
                 <div style="height: 200px;"><canvas id="chartAssignment"></canvas></div>
             </div>
         </div>
-        <div class="col-md-4">
+        <!-- <div class="col-md-4">
             <div class="chart-card">
                 <span class="chart-title"><i class="fas fa-file-alt text-secondary me-1"></i> Incourse (40)</span>
                 <div style="height: 200px;"><canvas id="chartMidterm"></canvas></div>
             </div>
-        </div>
+        </div> -->
         <div class="col-md-4">
             <div class="chart-card">
                 <span class="chart-title"><i class="fas fa-flag-checkered text-danger me-1"></i> Final Exam (60)</span>
                 <div style="height: 200px;"><canvas id="chartFinal"></canvas></div>
+            </div>
+        </div>
+         <div class="col-md-4">
+            <div class="chart-card">
+                <span class="chart-title"><i class="fas fa-graduation-cap text-primary me-1"></i> CGPA Trend</span>
+                <div style="height: 200px;"><canvas id="chartGPA"></canvas></div>
             </div>
         </div>
     </div>
@@ -144,7 +150,7 @@
                         <th>Attendance (24 Days)</th>
                         <th>Tutorial (20)</th>
                         <th>Assign (10)</th>
-                        <th>Incourse (40)</th>
+                        <!-- <th>Incourse (40)</th> -->
                         <th>Final (60)</th>
                     </tr>
                 </thead>
@@ -180,7 +186,7 @@
 
                         <td>{{ record.quiz|default:"-" }}</td>
                         <td>{{ record.assignment|default:"-" }}</td>
-                        <td>{{ record.midterm|default:"-" }}</td>
+                        <!-- <td>{{ record.midterm|default:"-" }}</td> -->
                         <td>{{ record.final|default:"-" }}</td>
                     </tr>
                     {% empty %}
@@ -215,7 +221,7 @@
 
     const quizData = [{% for r in records %}{{ r.quiz|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const assData = [{% for r in records %}{{ r.assignment|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
-    const midData = [{% for r in records %}{{ r.midterm|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    // const midData = [{% for r in records %}{{ r.midterm|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
     const finalData = [{% for r in records %}{{ r.final|default:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
 
     // --- ২. টেবিল আপডেট ফাংশন (Table Calculation) ---
@@ -288,7 +294,7 @@
     createChart('chartAttendance', 'Attendance (%)', attPercentageData, '#1cc88a', 'rgba(28, 200, 138, 0.1)', 100);
     createChart('chartQuiz', 'Tutorial', quizData, '#f6c23e', 'rgba(246, 194, 62, 0.1)', 20);
     createChart('chartAssignment', 'Assignment', assData, '#36b9cc', 'rgba(54, 185, 204, 0.1)', 10);
-    createChart('chartMidterm', 'Incourse', midData, '#858796', 'rgba(133, 135, 150, 0.1)', 40);
+    // createChart('chartMidterm', 'Incourse', midData, '#858796', 'rgba(133, 135, 150, 0.1)', 40);
     createChart('chartFinal', 'Final', finalData, '#e74a3b', 'rgba(231, 74, 59, 0.1)', 60);
 
 </script>

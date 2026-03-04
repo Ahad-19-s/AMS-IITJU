@@ -9,7 +9,7 @@ urlpatterns = [
     path('student/<str:student_id>/', views.student_profile, name='student_profile'),
     path('ai-dashboard/', views.ai_dashboard, name='ai_dashboard'),
     
-    # 👇 এই লাইনটি মিসিং আছে, এটি যোগ করুন:
+   
     path('reports/', views.reports, name='reports'),
     path('export-excel/', views.export_excel, name='export_excel'),
     path('export-pdf/', views.export_pdf, name='export_pdf'),
@@ -20,7 +20,7 @@ urlpatterns = [
     path('add-data/score/', views.add_subject_score, name='add_subject_score'),
     path('student/<int:student_id>/', views.student_profile, name='student_profile'),
 
-    path('change-password/', views.change_password, name='change_password'),
+   
     path('settings/', views.admin_settings, name='admin_settings'),
 ]
 

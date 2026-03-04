@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-# --- Global Choices ---
+
 SEMESTER_CHOICES = [
     ('1-1', '1st Year - Sem 1'), ('1-2', '1st Year - Sem 2'),
     ('2-1', '2nd Year - Sem 1'), ('2-2', '2nd Year - Sem 2'),
@@ -14,7 +14,7 @@ BATCH_CHOICES = [
     ('Batch-53', 'Batch 53'), ('Batch-54', 'Batch 54'),
 ]
 
-# ১. স্টুডেন্টের মৌলিক তথ্য
+
 class Student(models.Model):
     student_id = models.CharField(max_length=20, unique=True, verbose_name="Student ID")
     name = models.CharField(max_length=100, verbose_name="Full Name")
@@ -24,7 +24,7 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.name} ({self.student_id})"
 
-# ২. সাবজেক্ট/কোর্স এর তালিকা
+
 class Course(models.Model):
     course_code = models.CharField(max_length=20, unique=True)
     title = models.CharField(max_length=100)
@@ -34,14 +34,13 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.course_code}: {self.title}"
 
-# ৩. সেমিস্টার ভিত্তিক রেজাল্ট
+
 class AcademicRecord(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     semester = models.CharField(max_length=20, choices=SEMESTER_CHOICES)
-    attendance = models.FloatField(help_text="Attendance percentage")
+    attendance = models.FloatField(help_text="Attendance percentage (0-100)")
     assignment = models.FloatField(default=0.0)
     quiz = models.FloatField(default=0.0)
-    midterm = models.FloatField(default=0.0)
     final = models.FloatField(default=0.0)
     gpa = models.FloatField(validators=[MinValueValidator(0.0), MaxValueValidator(4.0)], help_text="Semester GPA")
 
@@ -52,7 +51,7 @@ class AcademicRecord(models.Model):
     def __str__(self):
         return f"{self.student.student_id} - {self.semester} (GPA: {self.gpa})"
 
-# ৪. সাবজেক্ট ভিত্তিক ডিটেইলস মার্কস
+
 class StudentSubjectScore(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='subject_scores')
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
